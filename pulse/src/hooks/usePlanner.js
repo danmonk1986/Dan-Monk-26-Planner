@@ -352,6 +352,13 @@ export default function usePlanner(entries) {
     setActiveMessage(null);
   }, []);
 
+  /** Start a clean test: empty plan, setup screen, demo date set — in one write. */
+  const launchTest = useCallback((dateStr) => {
+    localStorage.removeItem(STORAGE_KEY);
+    setActiveMessage(null);
+    writeState({}, [], { ...DEFAULT_SETTINGS, demo_today: dateStr });
+  }, [writeState]);
+
   // ── Auto-reschedule: single sync-then-detect pass ────────────
   useEffect(() => {
     if (!loaded || !settings.setup_complete) return;
@@ -515,5 +522,6 @@ export default function usePlanner(entries) {
     setGroup,
     setDemoToday,
     resetPlanner,
+    launchTest,
   };
 }

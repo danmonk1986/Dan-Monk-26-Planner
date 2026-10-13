@@ -110,19 +110,18 @@ export default function App() {
     setConfirmReset(false);
   }, [planner, removeByNote]);
 
-  const handleLaunchTest = useCallback(() => {
-    removeByNote('Planner check-in');
-    planner.resetPlanner();
-    planner.setDemoToday('2026-10-19');
-    setView(4);
-    closeTesting();
-  }, [planner, removeByNote, closeTesting]);
-
   const closeTesting = useCallback(() => {
     setTestingOpen(false);
     setConfirmClear(false);
     setConfirmReset(false);
   }, []);
+
+  const handleLaunchTest = useCallback(() => {
+    removeByNote('Planner check-in');
+    planner.launchTest('2026-10-19');
+    setView(4);
+    closeTesting();
+  }, [planner, removeByNote, closeTesting]);
 
   const demoToday = planner.demoToday;
   const groupAssignment = planner.settings?.group_assignment || 'adaptive';
