@@ -189,7 +189,7 @@ export default function usePlanner(entries) {
     if (toGenerate.length === 0) return;
 
     const weekSched = schedule.filter((s) => dates.includes(s.scheduled_date));
-    const activeCount = weekSched.filter((s) => s.status !== 'missed').length;
+    const activeCount = weekSched.length;
 
     const target = settings.weekly_target;
     let scheduled = activeCount;
