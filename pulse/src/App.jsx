@@ -13,11 +13,10 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import BiotechIcon from '@mui/icons-material/Biotech';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
-import DatasetIcon from '@mui/icons-material/Dataset';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Nav from './components/Nav';
 import Dashboard from './components/Dashboard';
@@ -40,7 +39,7 @@ const sectionHeading = {
 };
 
 export default function App() {
-  const { entries, add, update, remove, clearAll, removeByNote, loadSampleData } = useEntries();
+  const { entries, add, update, remove, clearAll, removeByNote } = useEntries();
   const planner = usePlanner(entries);
   const [view, setView] = useState(0);
   const [editEntry, setEditEntry] = useState(null);
@@ -111,6 +110,14 @@ export default function App() {
     setConfirmReset(false);
   }, [planner, removeByNote]);
 
+  const handleLaunchTest = useCallback(() => {
+    removeByNote('Planner check-in');
+    planner.resetPlanner();
+    planner.setDemoToday('2026-10-19');
+    setView(4);
+    closeTesting();
+  }, [planner, removeByNote, closeTesting]);
+
   const closeTesting = useCallback(() => {
     setTestingOpen(false);
     setConfirmClear(false);
@@ -142,7 +149,7 @@ export default function App() {
         flexDirection: 'column',
       }}
     >
-      <Nav view={view} onChangeView={setView} onOpenTesting={() => setTestingOpen(true)} />
+      <Nav view={view} onChangeView={setView} onOpenTesting={() => { setView(4); setTestingOpen(true); }} />
 
       {/* Main content */}
       <Box sx={{ flex: 1 }}>
@@ -306,24 +313,18 @@ export default function App() {
               {brand.name} stores all data in your browser. Nothing is sent to a server.
             </Typography>
 
-            {/* Reload sample data */}
+            {/* Launch test */}
             <Box sx={{ mb: 1.5 }}>
               <Button
                 size="small"
-                variant="outlined"
-                startIcon={<DatasetIcon />}
-                onClick={() => { loadSampleData(); closeTesting(); }}
-                id="reload-sample-data-button"
-                sx={{ fontSize: '0.7rem', mb: 0.75 }}
+                variant="contained"
+                startIcon={<RocketLaunchIcon />}
+                onClick={handleLaunchTest}
+                id="launch-test-button"
+                sx={{ fontSize: '0.7rem' }}
               >
-                Reload sample data
+                Launch test
               </Button>
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-                <WarningAmberIcon sx={{ fontSize: 14, color: '#FBBF24', mt: 0.25 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.4 }}>
-                  Adds random gym check-ins to the past 14 days, which can affect planner tests.
-                </Typography>
-              </Box>
             </Box>
 
             {/* Clear all data */}
