@@ -11,13 +11,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import MetricCard from './MetricCard';
 import MovedWorkoutDialog from './MovedWorkoutDialog';
-import usePlanner from '../hooks/usePlanner';
 import { tokens } from '../theme';
 
 const METRIC_TYPES = ['food', 'steps', 'water', 'sleep', 'gym'];
 
-export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGym, onNavigatePlanner }) {
-  const planner = usePlanner(entries);
+export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGym, onNavigatePlanner, planner }) {
   const todayStr = planner.todayStr;
   const todayPlanned = planner.todayPlanned;
   const demoToday = planner.demoToday;

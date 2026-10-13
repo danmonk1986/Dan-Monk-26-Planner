@@ -11,18 +11,29 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import HistoryIcon from '@mui/icons-material/History';
 import InsightsIcon from '@mui/icons-material/Insights';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import BiotechIcon from '@mui/icons-material/Biotech';
 import PulseLine from './PulseLine';
 import { tokens } from '../theme';
 import brand from '../brand';
+
+const TESTING_VIEW = -1;
 
 /**
  * App header with PulseLine logo and responsive navigation.
  * Mobile (≤600px): BottomNavigation fixed to bottom.
  * Desktop: Tabs in the header.
  */
-export default function Nav({ view, onChangeView }) {
+export default function Nav({ view, onChangeView, onOpenTesting }) {
   const isMobile = useMediaQuery('(max-width:600px)');
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  const handleChange = (_, v) => {
+    if (v === TESTING_VIEW) {
+      onOpenTesting();
+    } else {
+      onChangeView(v);
+    }
+  };
 
   return (
     <>
@@ -64,7 +75,7 @@ export default function Nav({ view, onChangeView }) {
         {!isMobile && (
           <Tabs
             value={view}
-            onChange={(_, v) => onChangeView(v)}
+            onChange={handleChange}
             aria-label="Main navigation"
           >
             <Tab icon={<DashboardIcon />} iconPosition="start" label="Dashboard" value={0} id="nav-dashboard" />
@@ -72,6 +83,7 @@ export default function Nav({ view, onChangeView }) {
             <Tab icon={<HistoryIcon />} iconPosition="start" label="History" value={2} id="nav-history" />
             <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={3} id="nav-summary" />
             <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="Workout Planner" value={4} id="nav-planner" />
+            <Tab icon={<BiotechIcon />} iconPosition="start" label="Testing" value={TESTING_VIEW} id="nav-testing" />
           </Tabs>
         )}
       </Box>
@@ -80,7 +92,7 @@ export default function Nav({ view, onChangeView }) {
       {isMobile && (
         <BottomNavigation
           value={view}
-          onChange={(_, v) => onChangeView(v)}
+          onChange={handleChange}
           showLabels
           sx={{
             position: 'fixed',
@@ -95,6 +107,7 @@ export default function Nav({ view, onChangeView }) {
           <BottomNavigationAction label="History" icon={<HistoryIcon />} id="nav-mobile-history" />
           <BottomNavigationAction label="Summary" icon={<InsightsIcon />} id="nav-mobile-summary" />
           <BottomNavigationAction label="Workouts" icon={<CalendarMonthIcon />} id="nav-mobile-planner" />
+          <BottomNavigationAction label="Testing" icon={<BiotechIcon />} id="nav-mobile-testing" />
         </BottomNavigation>
       )}
     </>
