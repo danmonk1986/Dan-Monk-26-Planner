@@ -5,7 +5,7 @@
   "description": "Companion repo for Practical Product Management in the Age of AI — contains the Pulse web app and book artifacts",
   "scripts": {
     "dev": "cd pulse && npm run dev",
-    "build": "cd pulse && npm run build",
+    "build": "cd pulse && npm run build && cp -r dist/pulse ../dist",
     "build:yorku": "cd pulse && npm run build:yorku",
     "preview": "cd pulse && npm run preview",
     "install": "cd pulse && npm install"
