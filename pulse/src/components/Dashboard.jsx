@@ -29,6 +29,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
   const [plannedToday, setPlannedToday] = useState(null);
 
   const fetchPlannedToday = useCallback(async () => {
+    if (!supabase) return;
     const today = getTodayStr();
     const { data: schedData, error: schedErr } = await supabase
       .from('planner_schedule')

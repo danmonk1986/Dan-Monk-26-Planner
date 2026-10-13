@@ -122,6 +122,11 @@ export default function Planner({ entries, onQuickGym }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (!supabase) {
+      setError('Database is not configured. Please check your environment setup.');
+      setLoading(false);
+      return;
+    }
     try {
       const { data: availData, error: availErr } = await supabase
         .from('planner_availability').select('*');
@@ -193,7 +198,7 @@ export default function Planner({ entries, onQuickGym }) {
   // Assigns workouts from the rotation to available days, capped at weekly target.
   // Only creates entries for dates that don't already have one.
   const generateWeek = useCallback(async (dates) => {
-    if (!settings || activeWorkouts.length === 0) return;
+    if (!supabase || !settings || activeWorkouts.length === 0) return;
 
     const existingDates = new Set(schedule.map((s) => s.scheduled_date));
     const toGenerate = dates.filter((d) => !existingDates.has(d));
@@ -247,7 +252,7 @@ export default function Planner({ entries, onQuickGym }) {
   // For adaptive group: marks missed, moves to next available day this week.
   // For fixed group: marks missed, no rescheduling.
   const autoReschedule = useCallback(async () => {
-    if (!settings) return;
+    if (!supabase || !settings) return;
     const today = getTodayStr();
     const thisWeekDates = getWeekDates(0);
 
@@ -352,7 +357,7 @@ export default function Planner({ entries, onQuickGym }) {
   // Sync schedule with gym entries: if there's a gym log for a scheduled date,
   // mark the schedule entry as completed. T3: double check-in counts as one.
   const syncWithGymEntries = useCallback(async () => {
-    if (!entries || entries.length === 0) return;
+    if (!supabase || !entries || entries.length === 0) return;
     const thisWeek = getWeekDates(0);
 
     for (const dateStr of thisWeek) {

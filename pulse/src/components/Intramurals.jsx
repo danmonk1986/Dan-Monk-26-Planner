@@ -62,6 +62,11 @@ export default function Intramurals() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (!supabase) {
+      setError('Database is not configured. Please check your environment setup.');
+      setLoading(false);
+      return;
+    }
     try {
       const { data: sportsData, error: sportsErr } = await supabase
         .from('intramural_sports')
@@ -134,6 +139,10 @@ export default function Intramurals() {
       return;
     }
 
+    if (!supabase) {
+      setFormError('Database is not configured.');
+      return;
+    }
     setSubmitting(true);
     try {
       const { data, error: insertErr } = await supabase
