@@ -42,7 +42,7 @@ const DAY_SHORT = {
   Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun',
 };
 
-export default function Planner({ entries, onQuickGym, onRemovePlannerCheckIns }) {
+export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlannerCheckIns }) {
   const planner = usePlanner(entries);
   const {
     loaded,
@@ -112,15 +112,18 @@ export default function Planner({ entries, onQuickGym, onRemovePlannerCheckIns }
 
   // ── Handlers ───────────────────────────────────────────────────
 
-  const handleComplete = useCallback(() => {
-    checkIn(onQuickGym);
-  }, [checkIn, onQuickGym]);
+  const handleComplete = useCallback((e) => {
+    e.stopPropagation();
+    checkIn(onAddEntry);
+  }, [checkIn, onAddEntry]);
 
-  const handleAcceptMove = useCallback((schedId) => {
+  const handleAcceptMove = useCallback((e, schedId) => {
+    e.stopPropagation();
     acceptMove(schedId);
   }, [acceptMove]);
 
   const handleDeclineMove = useCallback((entry, event) => {
+    event.stopPropagation();
     setMoveTargetEntry(entry);
     setAnchorEl(event.currentTarget);
   }, []);
@@ -471,7 +474,7 @@ export default function Planner({ entries, onQuickGym, onRemovePlannerCheckIns }
                       {entry.is_moved && entry.moved_accepted === null && entry.status === 'pending' && (
                         <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
                           <Button size="small" variant="contained" fullWidth
-                            onClick={() => handleAcceptMove(entry.id)}
+                            onClick={(e) => handleAcceptMove(e, entry.id)}
                             id={`accept-move-${entry.id}`}
                             sx={{ fontSize: '0.6rem', py: 0.2 }}>
                             Accept

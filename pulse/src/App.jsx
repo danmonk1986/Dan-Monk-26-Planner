@@ -138,7 +138,7 @@ export default function App() {
         )}
         {view === 3 && <WeeklySummary />}
         {view === 4 && <Intramurals />}
-        {view === 5 && <Planner entries={entries} onQuickGym={handleQuickGym} onRemovePlannerCheckIns={() => removeByNote('Planner check-in')} />}
+        {view === 5 && <Planner entries={entries} onQuickGym={handleQuickGym} onAddEntry={add} onRemovePlannerCheckIns={() => removeByNote('Planner check-in')} />}
       </Box>
 
       <Box component="footer" sx={{ py: 2, px: 3, textAlign: 'center', color: 'text.secondary', borderTop: 1, borderColor: 'divider', fontSize: '0.85rem' }}>
