@@ -130,6 +130,9 @@ export default function Planner({ planner, onAddEntry }) {
     const pending = weekEntries.filter((s) => s.status === 'pending' && !isWorkoutDone(s.scheduled_date)).length;
     const missed = weekEntries.filter((s) => s.status === 'missed').length;
 
+    // Only subtract a moved copy when its original missed entry is still
+    // in the week (adaptive miss moves create a second entry). Availability
+    // moves update the workout in place, so there's no duplicate to subtract.
     const movedFromDates = new Set(
       weekEntries
         .filter((s) => s.is_moved && s.moved_from_date && weekDates.includes(s.moved_from_date))
@@ -137,6 +140,7 @@ export default function Planner({ planner, onAddEntry }) {
     );
     const movedCopyCount = weekEntries.filter(
       (s) => s.is_moved && s.moved_from_date && movedFromDates.has(s.moved_from_date)
+        && !weekEntries.some((o) => o.scheduled_date === s.moved_from_date && o.id !== s.id)
     ).length;
 
     const total = weekEntries.length - movedCopyCount;
@@ -342,7 +346,7 @@ export default function Planner({ planner, onAddEntry }) {
                       {entry.is_moved && entry.moved_from_date && (
                         <Chip
                           icon={<SwapHorizIcon sx={{ fontSize: 13 }} />}
-                          label={`Moved from ${fromDayShort(entry.moved_from_date)}`}
+                          label={`From ${fromDayShort(entry.moved_from_date)}`}
                           size="small"
                           sx={{
                             fontSize: '0.6rem', height: 20, mb: 0.5,

@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
@@ -14,6 +15,9 @@ import BiotechIcon from '@mui/icons-material/Biotech';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Nav from './components/Nav';
 import Dashboard from './components/Dashboard';
@@ -23,7 +27,17 @@ import WeeklySummary from './components/WeeklySummary';
 import Planner from './components/Planner';
 import useEntries from './hooks/useEntries';
 import usePlanner from './hooks/usePlanner';
+import { tokens } from './theme';
 import brand from './brand';
+
+const sectionHeading = {
+  fontSize: '0.7rem',
+  fontFamily: '"Space Grotesk", sans-serif',
+  textTransform: 'uppercase',
+  letterSpacing: '0.12em',
+  color: 'text.secondary',
+  mb: 1,
+};
 
 export default function App() {
   const { entries, add, update, remove, clearAll, removeByNote, loadSampleData } = useEntries();
@@ -106,6 +120,19 @@ export default function App() {
   const demoToday = planner.demoToday;
   const groupAssignment = planner.settings?.group_assignment || 'adaptive';
 
+  // Format "Today: Tue, Oct 20" for the current demo date
+  const todayLabel = useMemo(() => {
+    const ref = demoToday ? new Date(demoToday + 'T12:00:00') : new Date();
+    return ref.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }, [demoToday]);
+
+  // Shift the demo date by ±1 day
+  const shiftDemoDate = useCallback((delta) => {
+    const ref = demoToday ? new Date(demoToday + 'T12:00:00') : new Date();
+    ref.setDate(ref.getDate() + delta);
+    planner.setDemoToday(ref.toLocaleDateString('en-CA'));
+  }, [demoToday, planner]);
+
   return (
     <Box
       sx={{
@@ -169,61 +196,75 @@ export default function App() {
         id="testing-dialog"
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '1rem' }}>
-          <BiotechIcon sx={{ color: '#FBBF24' }} />
+          <BiotechIcon sx={{ color: tokens.violetBright }} />
           Testing
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
-          {/* Planner testing controls */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', lineHeight: 1.5 }}>
-              Simulate a different today to test missed workouts, auto-rescheduling, and week transitions. Check-ins are timestamped at noon on the simulated date.
+          {/* Intro */}
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', lineHeight: 1.5 }}>
+            Tools for testing this prototype. Not part of the student app.
+          </Typography>
+
+          {/* ── Date section ── */}
+          <Box>
+            <Typography sx={sectionHeading}>Date</Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 1.5 }}>
+              Today: {todayLabel}
             </Typography>
-
-            {/* Date picker */}
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-                Demo today: {demoToday ? planner.formatDate(demoToday) : 'real date'}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                <TextField
-                  type="date"
-                  size="small"
-                  value={demoToday || ''}
-                  onChange={handleDemoDateChange}
-                  id="demo-date-picker"
-                  sx={{ fontSize: '0.75rem', '& .MuiInputBase-input': { fontSize: '0.75rem', padding: '6px 8px' } }}
-                />
-                {demoToday && (
-                  <Button size="small" variant="outlined" onClick={handleUseRealDate} id="use-real-date-button" sx={{ fontSize: '0.7rem' }}>
-                    Use real date
-                  </Button>
-                )}
-              </Box>
-            </Box>
-
-            {/* Group toggle */}
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
-                Group assignment
-              </Typography>
-              <ToggleButtonGroup
-                value={groupAssignment}
-                exclusive
-                onChange={handleGroupChange}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+              <IconButton size="small" onClick={() => shiftDemoDate(-1)} aria-label="Previous day" id="demo-prev-day">
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+              <TextField
+                type="date"
                 size="small"
-              >
-                <ToggleButton value="adaptive" id="demo-group-adaptive" sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Adaptive
-                </ToggleButton>
-                <ToggleButton value="fixed" id="demo-group-fixed" sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Fixed
-                </ToggleButton>
-              </ToggleButtonGroup>
+                value={demoToday || ''}
+                onChange={handleDemoDateChange}
+                id="demo-date-picker"
+                sx={{ fontSize: '0.75rem', flex: '1 1 auto', '& .MuiInputBase-input': { fontSize: '0.75rem', padding: '6px 8px' } }}
+              />
+              <IconButton size="small" onClick={() => shiftDemoDate(1)} aria-label="Next day" id="demo-next-day">
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
             </Box>
+            {demoToday && (
+              <Button size="small" onClick={handleUseRealDate} id="use-real-date-button" sx={{ fontSize: '0.7rem', mt: 0.75, textTransform: 'none', color: 'text.secondary', minWidth: 0, p: 0, '&:hover': { backgroundColor: 'transparent', color: 'primary.light' } }}>
+                Back to real date
+              </Button>
+            )}
+          </Box>
 
-            {/* Reset planner */}
-            <Box>
-              {!confirmReset ? (
+          <Divider />
+
+          {/* ── Group section ── */}
+          <Box>
+            <Typography sx={sectionHeading}>Group</Typography>
+            <ToggleButtonGroup
+              value={groupAssignment}
+              exclusive
+              onChange={handleGroupChange}
+              size="small"
+              sx={{ mb: 1 }}
+            >
+              <ToggleButton value="adaptive" id="demo-group-adaptive" sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif' }}>
+                Adaptive
+              </ToggleButton>
+              <ToggleButton value="fixed" id="demo-group-fixed" sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif' }}>
+                Fixed
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
+              Adaptive moves missed workouts to the next available day. Fixed leaves them missed.
+            </Typography>
+          </Box>
+
+          <Divider />
+
+          {/* ── Start over section ── */}
+          <Box>
+            <Typography sx={sectionHeading}>Start over</Typography>
+            {!confirmReset ? (
+              <>
                 <Button
                   size="small"
                   variant="outlined"
@@ -231,81 +272,102 @@ export default function App() {
                   startIcon={<RefreshIcon />}
                   onClick={() => setConfirmReset(true)}
                   id="reset-planner-button"
-                  sx={{ fontSize: '0.7rem' }}
+                  sx={{ fontSize: '0.7rem', mb: 1 }}
                 >
                   Reset planner
                 </Button>
-              ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography variant="body2" color="error" sx={{ fontSize: '0.75rem' }}>
-                    This clears your plan and all planner check-ins. Are you sure?
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button size="small" variant="contained" color="error" onClick={handleResetPlanner} id="confirm-reset-planner" sx={{ fontSize: '0.7rem' }}>
-                      Yes, reset
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => setConfirmReset(false)} id="cancel-reset-planner" sx={{ fontSize: '0.7rem' }}>
-                      Cancel
-                    </Button>
-                  </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.5 }}>
+                  Clears the plan and planner check-ins, then opens setup.
+                </Typography>
+              </>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="body2" color="error" sx={{ fontSize: '0.75rem' }}>
+                  This clears your plan and all planner check-ins. Are you sure?
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button size="small" variant="contained" color="error" onClick={handleResetPlanner} id="confirm-reset-planner" sx={{ fontSize: '0.7rem' }}>
+                    Yes, reset
+                  </Button>
+                  <Button size="small" variant="outlined" onClick={() => setConfirmReset(false)} id="cancel-reset-planner" sx={{ fontSize: '0.7rem' }}>
+                    Cancel
+                  </Button>
                 </Box>
-              )}
-            </Box>
+              </Box>
+            )}
           </Box>
 
           <Divider />
 
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>
-            {brand.name} stores all data in your browser. Nothing is sent to a server.
-          </Typography>
+          {/* ── App data section ── */}
+          <Box>
+            <Typography sx={sectionHeading}>App data</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.5, mb: 1.5 }}>
+              {brand.name} stores all data in your browser. Nothing is sent to a server.
+            </Typography>
 
-          {/* Reload sample data */}
-          <Button
-            variant="outlined"
-            startIcon={<DatasetIcon />}
-            onClick={() => { loadSampleData(); closeTesting(); }}
-            id="reload-sample-data-button"
-          >
-            Reload sample data
-          </Button>
-
-          {/* Clear all data */}
-          {!confirmClear ? (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteSweepIcon />}
-              onClick={() => setConfirmClear(true)}
-              id="clear-data-button"
-            >
-              Clear all data
-            </Button>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography variant="body2" color="error">
-                This will permanently delete all your entries. Are you sure?
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="contained"
-                  color="error"
-                  size="small"
-                  onClick={() => { clearAll(); closeTesting(); }}
-                  id="confirm-clear-button"
-                >
-                  Yes, clear all
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setConfirmClear(false)}
-                  id="cancel-clear-button"
-                >
-                  Cancel
-                </Button>
+            {/* Reload sample data */}
+            <Box sx={{ mb: 1.5 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<DatasetIcon />}
+                onClick={() => { loadSampleData(); closeTesting(); }}
+                id="reload-sample-data-button"
+                sx={{ fontSize: '0.7rem', mb: 0.75 }}
+              >
+                Reload sample data
+              </Button>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                <WarningAmberIcon sx={{ fontSize: 14, color: '#FBBF24', mt: 0.25 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.4 }}>
+                  Adds random gym check-ins to the past 14 days, which can affect planner tests.
+                </Typography>
               </Box>
             </Box>
-          )}
+
+            {/* Clear all data */}
+            {!confirmClear ? (
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteSweepIcon />}
+                onClick={() => setConfirmClear(true)}
+                id="clear-data-button"
+                sx={{ fontSize: '0.7rem' }}
+              >
+                Clear all data
+              </Button>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Typography variant="body2" color="error" sx={{ fontSize: '0.75rem' }}>
+                  This will permanently delete all your entries. Are you sure?
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    size="small"
+                    onClick={() => { clearAll(); closeTesting(); }}
+                    id="confirm-clear-button"
+                    sx={{ fontSize: '0.7rem' }}
+                  >
+                    Yes, clear all
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setConfirmClear(false)}
+                    id="cancel-clear-button"
+                    sx={{ fontSize: '0.7rem' }}
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeTesting}>
