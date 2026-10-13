@@ -14,8 +14,6 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
@@ -30,6 +28,7 @@ import ScienceIcon from '@mui/icons-material/Science';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TextField from '@mui/material/TextField';
 import usePlanner from '../hooks/usePlanner';
+import MovedWorkoutDialog from './MovedWorkoutDialog';
 import { tokens } from '../theme';
 
 const DAYS_OF_WEEK = [
@@ -41,6 +40,11 @@ const DAY_SHORT = {
   Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 'Thu',
   Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun',
 };
+
+function fromDayShort(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return DAY_SHORT[DAYS_OF_WEEK[(d.getDay() + 6) % 7]];
+}
 
 export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlannerCheckIns }) {
   const planner = usePlanner(entries);
@@ -56,8 +60,6 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
     generateWeek,
     saveSetup,
     checkIn,
-    acceptMove,
-    moveWorkout,
     updateAvailability,
     getWeekDates: plannerGetWeekDates,
     dateToDayOfWeek: plannerDateToDayOfWeek,
@@ -75,8 +77,6 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
   const [setupOpen, setSetupOpen] = useState(false);
   const [tempAvail, setTempAvail] = useState({});
   const [tempTarget, setTempTarget] = useState(3);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [moveTargetEntry, setMoveTargetEntry] = useState(null);
   const [detailsWorkout, setDetailsWorkout] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -116,24 +116,6 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
     e.stopPropagation();
     checkIn(onAddEntry);
   }, [checkIn, onAddEntry]);
-
-  const handleAcceptMove = useCallback((e, schedId) => {
-    e.stopPropagation();
-    acceptMove(schedId);
-  }, [acceptMove]);
-
-  const handleDeclineMove = useCallback((entry, event) => {
-    event.stopPropagation();
-    setMoveTargetEntry(entry);
-    setAnchorEl(event.currentTarget);
-  }, []);
-
-  const handlePickDay = useCallback((dateStr) => {
-    if (!moveTargetEntry) return;
-    setAnchorEl(null);
-    moveWorkout(moveTargetEntry.id, dateStr);
-    setMoveTargetEntry(null);
-  }, [moveTargetEntry, moveWorkout]);
 
   const handleOpenSetup = useCallback(() => {
     setTempAvail({ ...availability });
@@ -185,19 +167,6 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
     const total = weekEntries.length;
     return { completed, pending, missed, total };
   }, [weekDates, scheduleByDate, isWorkoutDone]);
-
-  const openSlotsThisWeek = useMemo(() => {
-    if (!moveTargetEntry) return [];
-    const thisWeek = plannerGetWeekDates(0);
-    return thisWeek.filter((d) => {
-      if (d === moveTargetEntry.scheduled_date) return false;
-      if (d < todayStr) return false;
-      const dow = plannerDateToDayOfWeek(d);
-      const isAvail = availability[dow] ?? false;
-      const hasEntry = schedule.some((s) => s.scheduled_date === d && s.id !== moveTargetEntry.id);
-      return isAvail && !hasEntry;
-    });
-  }, [moveTargetEntry, availability, schedule, plannerGetWeekDates, plannerDateToDayOfWeek, todayStr]);
 
   const isAdaptive = settings?.group_assignment === 'adaptive';
 
@@ -435,7 +404,7 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
                       {entry.is_moved && entry.moved_accepted === null && (
                         <Chip
                           icon={<SwapHorizIcon sx={{ fontSize: 13 }} />}
-                          label={`Rescheduled from ${plannerFormatDate(entry.moved_from_date)}`}
+                          label={`Moved from ${fromDayShort(entry.moved_from_date)}`}
                           size="small"
                           sx={{
                             fontSize: '0.6rem', height: 20, mb: 0.5,
@@ -470,23 +439,6 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
                         </Button>
                       )}
 
-                      {/* Moved workout accept/decline (adaptive only) */}
-                      {entry.is_moved && entry.moved_accepted === null && entry.status === 'pending' && (
-                        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                          <Button size="small" variant="contained" fullWidth
-                            onClick={(e) => handleAcceptMove(e, entry.id)}
-                            id={`accept-move-${entry.id}`}
-                            sx={{ fontSize: '0.6rem', py: 0.2 }}>
-                            Accept
-                          </Button>
-                          <Button size="small" variant="outlined" fullWidth
-                            onClick={(e) => handleDeclineMove(entry, e)}
-                            id={`decline-move-${entry.id}`}
-                            sx={{ fontSize: '0.6rem', py: 0.2 }}>
-                            Move
-                          </Button>
-                        </Box>
-                      )}
                     </Box>
                   )}
                 </CardContent>
@@ -570,23 +522,7 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
         </DialogActions>
       </Dialog>
 
-      {/* Move-day picker menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => { setAnchorEl(null); setMoveTargetEntry(null); }}
-        id="move-day-picker"
-      >
-        {openSlotsThisWeek.length === 0 ? (
-          <MenuItem disabled>No available days</MenuItem>
-        ) : (
-          openSlotsThisWeek.map((dateStr) => (
-            <MenuItem key={dateStr} onClick={() => handlePickDay(dateStr)} id={`pick-day-${dateStr}`}>
-              {plannerFormatDate(dateStr)} ({DAY_SHORT[plannerDateToDayOfWeek(dateStr)]})
-            </MenuItem>
-          ))
-        )}
-      </Menu>
+      <MovedWorkoutDialog planner={planner} />
 
       {/* Workout details dialog (tap a day card to see full workout) */}
       <Dialog

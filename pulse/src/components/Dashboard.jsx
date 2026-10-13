@@ -10,6 +10,7 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import MetricCard from './MetricCard';
+import MovedWorkoutDialog from './MovedWorkoutDialog';
 import usePlanner from '../hooks/usePlanner';
 import { tokens } from '../theme';
 
@@ -124,6 +125,8 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
           </Box>
         ))}
       </Box>
+
+      <MovedWorkoutDialog planner={planner} />
     </Box>
   );
 }

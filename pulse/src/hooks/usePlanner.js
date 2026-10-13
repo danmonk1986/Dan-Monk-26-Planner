@@ -455,6 +455,11 @@ export default function usePlanner(entries) {
     return { ...entry, done: gymDates.has(todayStr) };
   }, [scheduleByDate, todayStr, gymDates]);
 
+  const pendingMoves = useMemo(
+    () => schedule.filter((s) => s.is_moved && s.moved_accepted === null && s.status === 'pending'),
+    [schedule]
+  );
+
   // Bind getWeekDates to demo today for UI consumers
   const getWeekDatesBound = useCallback(
     (weekOffset) => getWeekDates(weekOffset, demoToday),
@@ -480,6 +485,7 @@ export default function usePlanner(entries) {
     activeMessage,
     clearActiveMessage,
     demoToday,
+    pendingMoves,
     saveSetup,
     generateWeek,
     checkIn,
