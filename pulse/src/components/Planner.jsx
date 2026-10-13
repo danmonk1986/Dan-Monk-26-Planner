@@ -130,9 +130,7 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
       saveSetup(tempAvail, tempTarget);
     }
     setSetupOpen(false);
-    // Generate the week after a tick so state settles
-    setTimeout(() => generateWeek(plannerGetWeekDates(0)), 50);
-  }, [tempAvail, tempTarget, settings, saveSetup, updateAvailability, generateWeek, plannerGetWeekDates]);
+  }, [tempAvail, tempTarget, settings, saveSetup, updateAvailability]);
 
   const handleToggleDay = useCallback((day) => {
     setTempAvail((prev) => ({ ...prev, [day]: !prev[day] }));

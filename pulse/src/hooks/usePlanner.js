@@ -303,6 +303,7 @@ export default function usePlanner(entries) {
       });
 
     const nextSched = [...trimmedSched];
+    const movedIds = new Set();
 
     let slotIdx = 0;
     for (const m of toMove) {
@@ -316,10 +317,16 @@ export default function usePlanner(entries) {
         moved_from_date: m.scheduled_date,
         moved_accepted: null,
       };
+      movedIds.add(m.id);
       existingDates.add(newDate);
     }
 
-    writeState(newAvail, nextSched, nextSettings);
+    // Remove workouts that couldn't be moved to an available day
+    const finalSched = nextSched.filter((s) =>
+      !toMove.some((m) => m.id === s.id) || movedIds.has(s.id)
+    );
+
+    writeState(newAvail, finalSched, nextSettings);
   }, [schedule, settings, writeState, demoToday]);
 
   /** Switch group assignment between adaptive and fixed. */
