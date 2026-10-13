@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
@@ -7,50 +7,18 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import MetricCard from './MetricCard';
-import supabase from '../lib/supabaseClient';
+import usePlanner from '../hooks/usePlanner';
 import { tokens } from '../theme';
 
 const METRIC_TYPES = ['food', 'steps', 'water', 'sleep', 'gym'];
 
-function getTodayStr() {
-  return new Date().toISOString().split('T')[0];
-}
-
-/**
- * Dashboard screen: five metric cards showing today's totals with mini trends,
- * plus quick-add shortcuts and today's planned workout from the planner.
- */
 export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGym, onNavigatePlanner }) {
-  const todayStr = new Date().toLocaleDateString('en-CA');
-  const [plannedToday, setPlannedToday] = useState(null);
-
-  const fetchPlannedToday = useCallback(async () => {
-    if (!supabase) return;
-    const today = getTodayStr();
-    const { data: schedData, error: schedErr } = await supabase
-      .from('planner_schedule')
-      .select('*')
-      .eq('scheduled_date', today)
-      .maybeSingle();
-    if (schedErr || !schedData) return;
-
-    const { data: workoutData, error: workoutErr } = await supabase
-      .from('planner_workouts')
-      .select('*')
-      .eq('id', schedData.workout_id)
-      .maybeSingle();
-    if (workoutErr || !workoutData) return;
-
-    setPlannedToday({ ...schedData, workout: workoutData });
-  }, []);
-
-  useEffect(() => {
-    fetchPlannedToday();
-  }, [fetchPlannedToday, entries]);
+  const planner = usePlanner(entries);
+  const todayStr = planner.todayStr;
+  const todayPlanned = planner.todayPlanned;
 
   const metrics = useMemo(() => {
     return METRIC_TYPES.map((type) => {
@@ -83,10 +51,9 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     });
   }, [entries, todayStr]);
 
-  const isRestDay = plannedToday?.workout?.is_rest_day;
-  const isCompleted = plannedToday?.status === 'completed';
-  const isMissed = plannedToday?.status === 'missed';
-  const isPending = plannedToday?.status === 'pending';
+  const isDone = todayPlanned?.done;
+  const isMissed = todayPlanned?.status === 'missed';
+  const isPending = todayPlanned?.status === 'pending' && !isDone;
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: 2, py: 3 }}>
@@ -101,7 +68,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       </Box>
 
       {/* Today's planned workout card */}
-      {plannedToday && !isRestDay && (
+      {todayPlanned && (
         <Card id="dashboard-planned-workout" sx={{ mb: 3, borderColor: isPending ? tokens.accentBorder40 : tokens.borderViolet }}>
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
             <FitnessCenterIcon sx={{ color: 'primary.light', fontSize: 28 }} />
@@ -110,10 +77,15 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
                 Today's Workout
               </Typography>
               <Typography sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
-                {plannedToday.workout?.name}
+                {todayPlanned.workout?.name}
               </Typography>
+              {todayPlanned.is_moved && todayPlanned.moved_accepted === null && (
+                <Typography sx={{ fontSize: '0.7rem', color: tokens.violetBright, mt: 0.25 }}>
+                  Rescheduled from {planner.formatDate(todayPlanned.moved_from_date)}
+                </Typography>
+              )}
             </Box>
-            {isCompleted && (
+            {isDone && (
               <Chip icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} label="Done" size="small"
                 sx={{ fontSize: '0.7rem', color: '#4ADE80', border: '1px solid', borderColor: 'rgba(74,222,128,0.3)', backgroundColor: 'rgba(74,222,128,0.08)' }} />
             )}
@@ -126,21 +98,6 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
               <Chip icon={<EventBusyIcon sx={{ fontSize: 14 }} />} label="Missed" size="small"
                 sx={{ fontSize: '0.7rem', color: '#FBBF24', border: '1px solid', borderColor: 'rgba(251,191,36,0.3)', backgroundColor: 'rgba(251,191,36,0.08)' }} />
             )}
-          </CardContent>
-        </Card>
-      )}
-      {plannedToday && isRestDay && (
-        <Card id="dashboard-rest-day" sx={{ mb: 3 }}>
-          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <SelfImprovementIcon sx={{ color: 'text.secondary', fontSize: 28 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.65rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary' }}>
-                Today
-              </Typography>
-              <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'text.secondary' }}>
-                Rest day — recover and recharge
-              </Typography>
-            </Box>
           </CardContent>
         </Card>
       )}
