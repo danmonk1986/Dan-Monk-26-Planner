@@ -173,12 +173,16 @@ export default function usePlanner(entries) {
   }, [settings, schedule, writeState]);
 
   /** Generate (or top up) the schedule for a set of week dates.
-   *  Places workouts A→B→C→A… on earliest available empty days, up to target. */
+   *  Places workouts A→B→C→A… on earliest available empty days from
+   *  today onward, up to target. Past days are never populated, so
+   *  setting up midweek never creates instant misses. */
   const generateWeek = useCallback((dates) => {
     if (!settings.setup_complete) return;
 
+    const today = getTodayStr();
     const existingDates = new Set(schedule.map((s) => s.scheduled_date));
-    const toGenerate = dates.filter((d) => !existingDates.has(d));
+    // Only generate for dates >= today (skip past days)
+    const toGenerate = dates.filter((d) => d >= today && !existingDates.has(d));
     if (toGenerate.length === 0) return;
 
     // Count active (non-missed) workouts already scheduled this week
@@ -266,14 +270,32 @@ export default function usePlanner(entries) {
       return !(newAvail[dow] ?? false);
     });
 
+    // If target was lowered, remove latest future pending workouts this week
+    // until non-missed count equals the new target. Never remove done or missed.
+    let trimmedSched = schedule;
+    if (newTarget != null) {
+      const weekNonMissed = schedule.filter((s) =>
+        thisWeek.includes(s.scheduled_date) && s.status !== 'missed'
+      );
+      const excess = weekNonMissed.length - newTarget;
+      if (excess > 0) {
+        // Remove the latest future pending workouts (furthest out first)
+        const futurePending = weekNonMissed
+          .filter((s) => s.scheduled_date > today && s.status === 'pending')
+          .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
+        const toRemove = new Set(futurePending.slice(0, excess).map((s) => s.id));
+        trimmedSched = schedule.filter((s) => !toRemove.has(s.id));
+      }
+    }
+
     if (toMove.length === 0) {
-      writeState(newAvail, schedule, nextSettings);
+      writeState(newAvail, trimmedSched, nextSettings);
       return;
     }
 
     // Find available empty days this week (today or later)
     const existingDates = new Set(
-      schedule.filter((s) => !toMove.includes(s)).map((s) => s.scheduled_date)
+      trimmedSched.filter((s) => !toMove.includes(s)).map((s) => s.scheduled_date)
     );
     const openSlots = thisWeek
       .filter((d) => d >= today)
@@ -282,8 +304,7 @@ export default function usePlanner(entries) {
         return newAvail[dow] && !existingDates.has(d);
       });
 
-    const nextSched = [...schedule];
-    const movedIds = new Set(toMove.map((m) => m.id));
+    const nextSched = [...trimmedSched];
 
     let slotIdx = 0;
     for (const m of toMove) {
@@ -315,10 +336,29 @@ export default function usePlanner(entries) {
     const thisWeekDates = getWeekDates(0);
     const isAdaptive = settings.group_assignment === 'adaptive';
 
-    // Detect missed: date before today, still pending, no gym check-in
+    // Detect missed from the CURRENT week only: date before today, still
+    // pending, no gym check-in, and within this week's date range.
+    // Earlier weeks' pending workouts are just marked missed — never moved.
     const missed = schedule.filter(
-      (s) => s.scheduled_date < today && s.status === 'pending' && !gymDates.has(s.scheduled_date)
+      (s) => s.scheduled_date < today && s.status === 'pending' && !gymDates.has(s.scheduled_date) &&
+      thisWeekDates.includes(s.scheduled_date)
     );
+    // Also mark any older pending workouts (from previous weeks) as missed
+    const olderMissed = schedule.filter(
+      (s) => s.scheduled_date < today && s.status === 'pending' && !gymDates.has(s.scheduled_date) &&
+      !thisWeekDates.includes(s.scheduled_date)
+    );
+    if (olderMissed.length > 0 && missed.length === 0) {
+      const nextSched = schedule.map((s) => {
+        const found = olderMissed.find((m) => m.id === s.id);
+        return found ? { ...s, status: 'missed' } : s;
+      });
+      writeState(availability, nextSched, settings);
+      return;
+    } else if (olderMissed.length > 0) {
+      // Mark older ones missed alongside current-week ones
+      olderMissed.forEach((m) => missed.push(m));
+    }
     if (missed.length === 0) {
       // Check early-finish: all non-missed active workouts done and count meets target
       const weekEntries = thisWeekDates.map((d) => scheduleByDate[d]).filter(Boolean);
@@ -339,6 +379,8 @@ export default function usePlanner(entries) {
     let msgKey = 'missed_midweek';
 
     if (isAdaptive) {
+      // Only current-week misses are eligible for moving
+      const movableMissed = missed.filter((m) => thisWeekDates.includes(m.scheduled_date));
       const existingDates = new Set(nextSched.map((s) => s.scheduled_date));
       const remainingWeekDates = thisWeekDates.filter((d) => d >= today);
 
@@ -351,7 +393,7 @@ export default function usePlanner(entries) {
         }
       }
 
-      const missedQueue = [...missed];
+      const missedQueue = [...movableMissed];
       const inserts = [];
       for (const dateStr of openSlots) {
         if (missedQueue.length === 0) break;
@@ -372,7 +414,7 @@ export default function usePlanner(entries) {
         msgKey = 'missed_no_room';
       }
 
-      const sundayMissed = missed.some((m) => dateToDayOfWeek(m.scheduled_date) === 'Sunday');
+      const sundayMissed = movableMissed.some((m) => dateToDayOfWeek(m.scheduled_date) === 'Sunday');
       if (sundayMissed && inserts.length === 0) {
         msgKey = 'missed_sunday';
       }

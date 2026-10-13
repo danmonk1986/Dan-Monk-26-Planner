@@ -161,12 +161,13 @@ export default function Planner({ entries, onQuickGym }) {
     const thisWeek = plannerGetWeekDates(0);
     return thisWeek.filter((d) => {
       if (d === moveTargetEntry.scheduled_date) return false;
+      if (d < todayStr) return false;
       const dow = plannerDateToDayOfWeek(d);
       const isAvail = availability[dow] ?? false;
       const hasEntry = schedule.some((s) => s.scheduled_date === d && s.id !== moveTargetEntry.id);
       return isAvail && !hasEntry;
     });
-  }, [moveTargetEntry, availability, schedule, plannerGetWeekDates, plannerDateToDayOfWeek]);
+  }, [moveTargetEntry, availability, schedule, plannerGetWeekDates, plannerDateToDayOfWeek, todayStr]);
 
   const isAdaptive = settings?.group_assignment === 'adaptive';
 
