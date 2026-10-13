@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     base,
+    define: isBolt ? { 'import.meta.env.VITE_BRAND': JSON.stringify('yorku') } : {},
     build: {
       outDir: isYorku ? 'dist/pulse/yorku' : (isBolt ? '../dist' : 'dist/pulse'),
       emptyOutDir: true,

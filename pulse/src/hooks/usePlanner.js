@@ -266,7 +266,8 @@ export default function usePlanner(entries) {
 
     const toMove = schedule.filter((s) => {
       if (!thisWeek.includes(s.scheduled_date)) return false;
-      if (s.scheduled_date <= today) return false;
+      if (s.scheduled_date < today) return false;
+      if (s.scheduled_date === today && gymDates.has(s.scheduled_date)) return false;
       if (s.status !== 'pending') return false;
       const dow = dateToDayOfWeek(s.scheduled_date);
       return !(newAvail[dow] ?? false);
@@ -315,7 +316,7 @@ export default function usePlanner(entries) {
         scheduled_date: newDate,
         is_moved: true,
         moved_from_date: m.scheduled_date,
-        moved_accepted: null,
+        moved_accepted: true,
       };
       movedIds.add(m.id);
       existingDates.add(newDate);

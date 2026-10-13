@@ -162,7 +162,19 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
     const completed = weekEntries.filter((s) => isWorkoutDone(s.scheduled_date)).length;
     const pending = weekEntries.filter((s) => s.status === 'pending' && !isWorkoutDone(s.scheduled_date)).length;
     const missed = weekEntries.filter((s) => s.status === 'missed').length;
-    const total = weekEntries.length;
+
+    // Count a moved workout once: if its original (missed) is also in the week,
+    // don't double-count the moved copy toward total.
+    const movedFromDates = new Set(
+      weekEntries
+        .filter((s) => s.is_moved && s.moved_from_date && weekDates.includes(s.moved_from_date))
+        .map((s) => s.moved_from_date)
+    );
+    const movedCopyCount = weekEntries.filter(
+      (s) => s.is_moved && s.moved_from_date && movedFromDates.has(s.moved_from_date)
+    ).length;
+
+    const total = weekEntries.length - movedCopyCount;
     return { completed, pending, missed, total };
   }, [weekDates, scheduleByDate, isWorkoutDone]);
 
@@ -336,7 +348,7 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
           </IconButton>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Chip label={`${weekStats.completed}/${settings?.weekly_target ?? 3} done`} size="small"
+          <Chip label={`${weekStats.completed}/${weekStats.total} done`} size="small"
             sx={{ fontSize: '0.7rem', borderColor: tokens.borderViolet, color: '#4ADE80', border: '1px solid', backgroundColor: 'transparent' }} />
           {weekStats.missed > 0 && (
             <Chip label={`${weekStats.missed} missed`} size="small"
@@ -399,7 +411,7 @@ export default function Planner({ entries, onQuickGym, onAddEntry, onRemovePlann
                       </Typography>
 
                       {/* Moved indicator */}
-                      {entry.is_moved && entry.moved_accepted === null && (
+                      {entry.is_moved && entry.moved_from_date && (
                         <Chip
                           icon={<SwapHorizIcon sx={{ fontSize: 13 }} />}
                           label={`Moved from ${fromDayShort(entry.moved_from_date)}`}

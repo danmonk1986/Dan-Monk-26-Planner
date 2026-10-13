@@ -10,7 +10,6 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import HistoryIcon from '@mui/icons-material/History';
 import InsightsIcon from '@mui/icons-material/Insights';
-import SportsIcon from '@mui/icons-material/Sports';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import PulseLine from './PulseLine';
 import { tokens } from '../theme';
@@ -72,8 +71,7 @@ export default function Nav({ view, onChangeView }) {
             <Tab icon={<AddCircleOutlineIcon />} iconPosition="start" label="Log" value={1} id="nav-log" />
             <Tab icon={<HistoryIcon />} iconPosition="start" label="History" value={2} id="nav-history" />
             <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={3} id="nav-summary" />
-            <Tab icon={<SportsIcon />} iconPosition="start" label="Sports" value={4} id="nav-sports" />
-            <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="Planner" value={5} id="nav-planner" />
+            <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="Workout Planner" value={4} id="nav-planner" />
           </Tabs>
         )}
       </Box>
@@ -96,8 +94,7 @@ export default function Nav({ view, onChangeView }) {
           <BottomNavigationAction label="Log" icon={<AddCircleOutlineIcon />} id="nav-mobile-log" />
           <BottomNavigationAction label="History" icon={<HistoryIcon />} id="nav-mobile-history" />
           <BottomNavigationAction label="Summary" icon={<InsightsIcon />} id="nav-mobile-summary" />
-          <BottomNavigationAction label="Sports" icon={<SportsIcon />} id="nav-mobile-sports" />
-          <BottomNavigationAction label="Planner" icon={<CalendarMonthIcon />} id="nav-mobile-planner" />
+          <BottomNavigationAction label="Workouts" icon={<CalendarMonthIcon />} id="nav-mobile-planner" />
         </BottomNavigation>
       )}
     </>

@@ -82,7 +82,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
               <Typography sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
                 {todayPlanned.workout?.name}
               </Typography>
-              {todayPlanned.is_moved && todayPlanned.moved_accepted === null && (
+              {todayPlanned.is_moved && todayPlanned.moved_from_date && (
                 <Typography sx={{ fontSize: '0.7rem', color: tokens.violetBright, mt: 0.25 }}>
                   Rescheduled from {planner.formatDate(todayPlanned.moved_from_date)}
                 </Typography>
