@@ -42,7 +42,7 @@ const MESSAGES = {
   missed_midweek: "You missed a workout, but that happens. It's been moved to your next available day — no need to start over.",
   missed_no_room: 'No available days left this week for a moved workout. That\'s okay — next week starts fresh on Monday.',
   missed_sunday: "A workout slipped past on Sunday. Nothing carries over — your new week starts fresh tomorrow.",
-  moved_success: "Your workout's been rescheduled. Tap accept to keep it there, or pick another available day.",
+  moved_success: "Your workout's been rescheduled. Keep it there, or pick another available day.",
   plan_complete_early: 'All your workouts are done this week. Great work — enjoy the rest.',
   week_complete: "That's a wrap on this week. Your next plan will be ready on Monday.",
   setup_welcome: "Let's set up your week. Pick your available days and a weekly target, and we'll place your beginner plan for you.",
@@ -389,6 +389,15 @@ export default function usePlanner(entries) {
 
     if (isAdaptive) {
       const movableMissed = missed.filter((m) => thisWeekDates.includes(m.scheduled_date));
+      // Skip missed workouts that already have a moved copy (same workout_id + moved_from_date)
+      const alreadyMoved = new Set(
+        nextSched
+          .filter((s) => s.is_moved && s.moved_from_date)
+          .map((s) => `${s.workout_id}:${s.moved_from_date}`)
+      );
+      const eligibleMissed = movableMissed.filter(
+        (m) => !alreadyMoved.has(`${m.workout_id}:${m.scheduled_date}`)
+      );
       const existingDates = new Set(nextSched.map((s) => s.scheduled_date));
       const remainingWeekDates = thisWeekDates.filter((d) => d >= today);
 
@@ -401,7 +410,7 @@ export default function usePlanner(entries) {
         }
       }
 
-      const missedQueue = [...movableMissed];
+      const missedQueue = [...eligibleMissed];
       const inserts = [];
       for (const dateStr of openSlots) {
         if (missedQueue.length === 0) break;
@@ -422,7 +431,7 @@ export default function usePlanner(entries) {
         msgKey = 'missed_no_room';
       }
 
-      const sundayMissed = movableMissed.some((m) => dateToDayOfWeek(m.scheduled_date) === 'Sunday');
+      const sundayMissed = eligibleMissed.some((m) => dateToDayOfWeek(m.scheduled_date) === 'Sunday');
       if (sundayMissed && inserts.length === 0) {
         msgKey = 'missed_sunday';
       }
@@ -455,10 +464,13 @@ export default function usePlanner(entries) {
     return { ...entry, done: gymDates.has(todayStr) };
   }, [scheduleByDate, todayStr, gymDates]);
 
-  const pendingMoves = useMemo(
-    () => schedule.filter((s) => s.is_moved && s.moved_accepted === null && s.status === 'pending'),
-    [schedule]
-  );
+  const pendingMoves = useMemo(() => {
+    const thisWeekDates = getWeekDates(0, demoToday);
+    return schedule.filter((s) =>
+      s.is_moved && s.moved_accepted === null && s.status === 'pending' &&
+      thisWeekDates.includes(s.scheduled_date)
+    );
+  }, [schedule, demoToday]);
 
   // Bind getWeekDates to demo today for UI consumers
   const getWeekDatesBound = useCallback(

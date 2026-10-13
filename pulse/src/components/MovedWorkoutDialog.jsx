@@ -80,7 +80,7 @@ export default function MovedWorkoutDialog({ planner }) {
 
   if (!currentMove) return null;
 
-  const workout = currentMove.workout;
+  const workout = planner.workouts.find((w) => w.id === currentMove.workout_id);
   const newDayName = dateToDayOfWeek(currentMove.scheduled_date);
   const fromDayShort = dayShort(currentMove.moved_from_date, dateToDayOfWeek);
   const toDayShort = dayShort(currentMove.scheduled_date, dateToDayOfWeek);
@@ -123,7 +123,7 @@ export default function MovedWorkoutDialog({ planner }) {
       </DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" sx={{ fontSize: '0.85rem', lineHeight: 1.5, mb: 2 }}>
-          Your workout's been rescheduled. Tap accept to keep it there, or pick another available day.
+          Your workout's been rescheduled. Keep it there, or pick another available day.
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
