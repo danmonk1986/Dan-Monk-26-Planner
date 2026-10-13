@@ -53,6 +53,7 @@ const DEFAULT_SETTINGS = {
   group_assignment: 'adaptive',
   weekly_target: 3,
   setup_complete: false,
+  demo_today: null,
 };
 
 // ── Local-date utilities (never UTC) ──────────────────────────────
@@ -62,7 +63,8 @@ function localDateStr(date) {
   return d.toLocaleDateString('en-CA');
 }
 
-function getTodayStr() {
+function getTodayStr(demoToday) {
+  if (demoToday) return demoToday;
   return localDateStr(new Date());
 }
 
@@ -71,10 +73,10 @@ function dateToDayOfWeek(dateStr) {
   return DAYS_OF_WEEK[(d.getDay() + 6) % 7];
 }
 
-function getWeekDates(weekOffset) {
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekOffset * 7);
+function getWeekDates(weekOffset, demoToday) {
+  const base = demoToday ? new Date(demoToday + 'T12:00:00') : new Date();
+  const monday = new Date(base);
+  monday.setDate(base.getDate() - ((base.getDay() + 6) % 7) + weekOffset * 7);
   const dates = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
@@ -115,6 +117,8 @@ export default function usePlanner(entries) {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [activeMessage, setActiveMessage] = useState(null);
+
+  const demoToday = settings.demo_today || null;
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -179,19 +183,17 @@ export default function usePlanner(entries) {
   const generateWeek = useCallback((dates) => {
     if (!settings.setup_complete) return;
 
-    const today = getTodayStr();
+    const today = getTodayStr(demoToday);
     const existingDates = new Set(schedule.map((s) => s.scheduled_date));
-    // Only generate for dates >= today (skip past days)
     const toGenerate = dates.filter((d) => d >= today && !existingDates.has(d));
     if (toGenerate.length === 0) return;
 
-    // Count active (non-missed) workouts already scheduled this week
     const weekSched = schedule.filter((s) => dates.includes(s.scheduled_date));
     const activeCount = weekSched.filter((s) => s.status !== 'missed').length;
 
     const target = settings.weekly_target;
     let scheduled = activeCount;
-    let wIdx = 0; // always start from A each week
+    let wIdx = 0;
     const inserts = [];
 
     for (const dateStr of toGenerate) {
@@ -216,20 +218,21 @@ export default function usePlanner(entries) {
       const nextSched = [...schedule, ...inserts];
       writeState(availability, nextSched, settings);
     }
-  }, [settings, schedule, availability, writeState]);
+  }, [settings, schedule, availability, writeState, demoToday]);
 
   /** Check in: creates a gym entry via the provided addEntry callback.
-   *  Done status is derived from gym entries — no schedule mutation. */
+   *  Timestamp is noon local time on the demo (or real) today. */
   const checkIn = useCallback((addEntry) => {
-    const now = new Date().toISOString();
+    const todayDate = getTodayStr(demoToday);
+    const timestamp = new Date(todayDate + 'T12:00:00').toISOString();
     addEntry({
       type: 'gym',
       value: 60,
       unit: 'minutes',
       note: 'Planner check-in',
-      timestamp: now,
+      timestamp,
     });
-  }, []);
+  }, [demoToday]);
 
   /** Accept a moved workout (dismisses the "Rescheduled from" note). */
   const acceptMove = useCallback((schedId) => {
@@ -258,10 +261,9 @@ export default function usePlanner(entries) {
     const nextSettings = newTarget != null
       ? { ...settings, weekly_target: newTarget }
       : settings;
-    const today = getTodayStr();
-    const thisWeek = getWeekDates(0);
+    const today = getTodayStr(demoToday);
+    const thisWeek = getWeekDates(0, demoToday);
 
-    // Find future pending workouts on now-unavailable days
     const toMove = schedule.filter((s) => {
       if (!thisWeek.includes(s.scheduled_date)) return false;
       if (s.scheduled_date <= today) return false;
@@ -270,8 +272,6 @@ export default function usePlanner(entries) {
       return !(newAvail[dow] ?? false);
     });
 
-    // If target was lowered, remove latest future pending workouts this week
-    // until non-missed count equals the new target. Never remove done or missed.
     let trimmedSched = schedule;
     if (newTarget != null) {
       const weekNonMissed = schedule.filter((s) =>
@@ -279,7 +279,6 @@ export default function usePlanner(entries) {
       );
       const excess = weekNonMissed.length - newTarget;
       if (excess > 0) {
-        // Remove the latest future pending workouts (furthest out first)
         const futurePending = weekNonMissed
           .filter((s) => s.scheduled_date > today && s.status === 'pending')
           .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
@@ -293,7 +292,6 @@ export default function usePlanner(entries) {
       return;
     }
 
-    // Find available empty days this week (today or later)
     const existingDates = new Set(
       trimmedSched.filter((s) => !toMove.includes(s)).map((s) => s.scheduled_date)
     );
@@ -321,29 +319,43 @@ export default function usePlanner(entries) {
       existingDates.add(newDate);
     }
 
-    // Any that couldn't move stay on their day (they'll be missed when it passes)
     writeState(newAvail, nextSched, nextSettings);
-  }, [schedule, settings, writeState]);
+  }, [schedule, settings, writeState, demoToday]);
+
+  /** Switch group assignment between adaptive and fixed. */
+  const setGroup = useCallback((group) => {
+    const nextSettings = { ...settings, group_assignment: group };
+    writeState(availability, schedule, nextSettings);
+  }, [settings, availability, schedule, writeState]);
+
+  /** Set the demo "today" date (null = use real date). */
+  const setDemoToday = useCallback((dateStr) => {
+    const nextSettings = { ...settings, demo_today: dateStr };
+    writeState(availability, schedule, nextSettings);
+    setActiveMessage(null);
+  }, [settings, availability, schedule, writeState]);
+
+  /** Reset planner: clear all planner state, return to setup screen. */
+  const resetPlanner = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setAvailability({});
+    setSchedule([]);
+    setSettings(DEFAULT_SETTINGS);
+    setActiveMessage(null);
+  }, []);
 
   // ── Auto-reschedule: single sync-then-detect pass ────────────
-  // Runs when entries or schedule change. Since "done" is derived
-  // purely from gym entries, sync is implicit — we just detect
-  // misses on remaining pending workouts that have no gym entry.
   useEffect(() => {
     if (!loaded || !settings.setup_complete) return;
 
-    const today = getTodayStr();
-    const thisWeekDates = getWeekDates(0);
+    const today = getTodayStr(demoToday);
+    const thisWeekDates = getWeekDates(0, demoToday);
     const isAdaptive = settings.group_assignment === 'adaptive';
 
-    // Detect missed from the CURRENT week only: date before today, still
-    // pending, no gym check-in, and within this week's date range.
-    // Earlier weeks' pending workouts are just marked missed — never moved.
     const missed = schedule.filter(
       (s) => s.scheduled_date < today && s.status === 'pending' && !gymDates.has(s.scheduled_date) &&
       thisWeekDates.includes(s.scheduled_date)
     );
-    // Also mark any older pending workouts (from previous weeks) as missed
     const olderMissed = schedule.filter(
       (s) => s.scheduled_date < today && s.status === 'pending' && !gymDates.has(s.scheduled_date) &&
       !thisWeekDates.includes(s.scheduled_date)
@@ -356,11 +368,9 @@ export default function usePlanner(entries) {
       writeState(availability, nextSched, settings);
       return;
     } else if (olderMissed.length > 0) {
-      // Mark older ones missed alongside current-week ones
       olderMissed.forEach((m) => missed.push(m));
     }
     if (missed.length === 0) {
-      // Check early-finish: all non-missed active workouts done and count meets target
       const weekEntries = thisWeekDates.map((d) => scheduleByDate[d]).filter(Boolean);
       const nonMissed = weekEntries.filter((s) => s.status !== 'missed');
       const completedCount = nonMissed.filter((s) => gymDates.has(s.scheduled_date)).length;
@@ -370,7 +380,6 @@ export default function usePlanner(entries) {
       return;
     }
 
-    // Mark all missed
     let nextSched = schedule.map((s) => {
       const found = missed.find((m) => m.id === s.id);
       return found ? { ...s, status: 'missed' } : s;
@@ -379,7 +388,6 @@ export default function usePlanner(entries) {
     let msgKey = 'missed_midweek';
 
     if (isAdaptive) {
-      // Only current-week misses are eligible for moving
       const movableMissed = missed.filter((m) => thisWeekDates.includes(m.scheduled_date));
       const existingDates = new Set(nextSched.map((s) => s.scheduled_date));
       const remainingWeekDates = thisWeekDates.filter((d) => d >= today);
@@ -428,54 +436,58 @@ export default function usePlanner(entries) {
 
     writeState(availability, nextSched, settings);
     setActiveMessage(msgKey);
-  }, [loaded, settings, schedule, availability, gymDates, scheduleByDate, writeState]);
+  }, [loaded, settings, schedule, availability, gymDates, scheduleByDate, writeState, demoToday]);
 
   const clearActiveMessage = useCallback(() => setActiveMessage(null), []);
 
   // ── Computed helpers exposed to UI ─────────────────────────────
 
-  const todayStr = getTodayStr();
+  const todayStr = getTodayStr(demoToday);
 
   const isTodayDone = useMemo(
     () => gymDates.has(todayStr),
     [gymDates, todayStr]
   );
 
-  /** Today's planned workout (or null), with derived done status. */
   const todayPlanned = useMemo(() => {
     const entry = scheduleByDate[todayStr];
     if (!entry) return null;
     return { ...entry, done: gymDates.has(todayStr) };
   }, [scheduleByDate, todayStr, gymDates]);
 
+  // Bind getWeekDates to demo today for UI consumers
+  const getWeekDatesBound = useCallback(
+    (weekOffset) => getWeekDates(weekOffset, demoToday),
+    [demoToday]
+  );
+
   return {
-    // state
     loaded,
     availability,
     schedule,
     settings,
     workouts: WORKOUTS,
     messages: MESSAGES,
-    // derived
     scheduleByDate,
     gymDates,
     todayStr,
     todayPlanned,
     isTodayDone,
-    // utilities
-    getWeekDates,
+    getWeekDates: getWeekDatesBound,
     dateToDayOfWeek,
     formatDate,
     isWorkoutDone: (dateStr) => gymDates.has(dateStr),
-    // message
     activeMessage,
     clearActiveMessage,
-    // mutations
+    demoToday,
     saveSetup,
     generateWeek,
     checkIn,
     acceptMove,
     moveWorkout,
     updateAvailability,
+    setGroup,
+    setDemoToday,
+    resetPlanner,
   };
 }

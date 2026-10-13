@@ -27,7 +27,7 @@ import brand from './brand';
  * No router — simple tab switching for GitHub Pages compatibility.
  */
 export default function App() {
-  const { entries, add, update, remove, clearAll, loadSampleData } = useEntries();
+  const { entries, add, update, remove, clearAll, removeByNote, loadSampleData } = useEntries();
   const [view, setView] = useState(0); // 0=Dashboard, 1=Log, 2=History, 3=Summary, 4=Sports, 5=Planner
   const [editEntry, setEditEntry] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -138,7 +138,7 @@ export default function App() {
         )}
         {view === 3 && <WeeklySummary />}
         {view === 4 && <Intramurals />}
-        {view === 5 && <Planner entries={entries} onQuickGym={handleQuickGym} />}
+        {view === 5 && <Planner entries={entries} onQuickGym={handleQuickGym} onRemovePlannerCheckIns={() => removeByNote('Planner check-in')} />}
       </Box>
 
       <Box component="footer" sx={{ py: 2, px: 3, textAlign: 'center', color: 'text.secondary', borderTop: 1, borderColor: 'divider', fontSize: '0.85rem' }}>

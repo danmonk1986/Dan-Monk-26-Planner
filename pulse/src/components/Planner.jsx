@@ -26,6 +26,9 @@ import AutoRescheduleIcon from '@mui/icons-material/Autorenew';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import TimerIcon from '@mui/icons-material/Timer';
 import CloseIcon from '@mui/icons-material/Close';
+import ScienceIcon from '@mui/icons-material/Science';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import TextField from '@mui/material/TextField';
 import usePlanner from '../hooks/usePlanner';
 import { tokens } from '../theme';
 
@@ -39,7 +42,7 @@ const DAY_SHORT = {
   Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun',
 };
 
-export default function Planner({ entries, onQuickGym }) {
+export default function Planner({ entries, onQuickGym, onRemovePlannerCheckIns }) {
   const planner = usePlanner(entries);
   const {
     loaded,
@@ -62,6 +65,10 @@ export default function Planner({ entries, onQuickGym }) {
     isWorkoutDone,
     activeMessage,
     clearActiveMessage,
+    demoToday,
+    setGroup,
+    setDemoToday,
+    resetPlanner,
   } = planner;
 
   const [weekOffset, setWeekOffset] = useState(0);
@@ -71,6 +78,7 @@ export default function Planner({ entries, onQuickGym }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [moveTargetEntry, setMoveTargetEntry] = useState(null);
   const [detailsWorkout, setDetailsWorkout] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const weekDates = useMemo(() => plannerGetWeekDates(weekOffset), [weekOffset, plannerGetWeekDates]);
 
@@ -144,6 +152,25 @@ export default function Planner({ entries, onQuickGym }) {
   const handleToggleDay = useCallback((day) => {
     setTempAvail((prev) => ({ ...prev, [day]: !prev[day] }));
   }, []);
+
+  const handleDemoDateChange = useCallback((e) => {
+    const val = e.target.value;
+    setDemoToday(val || null);
+  }, [setDemoToday]);
+
+  const handleUseRealDate = useCallback(() => {
+    setDemoToday(null);
+  }, [setDemoToday]);
+
+  const handleGroupChange = useCallback((_, val) => {
+    if (val) setGroup(val);
+  }, [setGroup]);
+
+  const handleResetPlanner = useCallback(() => {
+    if (onRemovePlannerCheckIns) onRemovePlannerCheckIns();
+    resetPlanner();
+    setConfirmReset(false);
+  }, [onRemovePlannerCheckIns, resetPlanner]);
 
   // ── Computed ───────────────────────────────────────────────────
 
@@ -233,6 +260,41 @@ export default function Planner({ entries, onQuickGym }) {
             <Button variant="contained" onClick={handleSaveSetup} id="setup-complete-button" size="large">
               Start my plan
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Demo controls — testing tool (also available on setup screen) */}
+        <Card sx={{ mt: 3, borderColor: 'rgba(251,191,36,0.3)', borderWidth: 1 }}>
+          <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <ScienceIcon sx={{ fontSize: 18, color: '#FBBF24' }} />
+              <Typography sx={{ fontSize: '0.75rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#FBBF24' }}>
+                Testing Tool
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', lineHeight: 1.5, mb: 2 }}>
+              Simulate a different today to test missed workouts, auto-rescheduling, and week transitions. Check-ins are timestamped at noon on the simulated date.
+            </Typography>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
+                Demo today: {demoToday ? plannerFormatDate(demoToday) : 'real date'}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={demoToday || ''}
+                  onChange={handleDemoDateChange}
+                  id="demo-date-picker"
+                  sx={{ fontSize: '0.75rem', '& .MuiInputBase-input': { fontSize: '0.75rem', padding: '6px 8px' } }}
+                />
+                {demoToday && (
+                  <Button size="small" variant="outlined" onClick={handleUseRealDate} id="use-real-date-button" sx={{ fontSize: '0.7rem' }}>
+                    Use real date
+                  </Button>
+                )}
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       </Box>
@@ -577,6 +639,96 @@ export default function Planner({ entries, onQuickGym }) {
           </>
         )}
       </Dialog>
+
+      {/* Demo controls — testing tool */}
+      <Card sx={{ mt: 4, borderColor: 'rgba(251,191,36,0.3)', borderWidth: 1 }}>
+        <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <ScienceIcon sx={{ fontSize: 18, color: '#FBBF24' }} />
+            <Typography sx={{ fontSize: '0.75rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#FBBF24' }}>
+              Testing Tool
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', lineHeight: 1.5, mb: 2 }}>
+            Simulate a different today to test missed workouts, auto-rescheduling, and week transitions. Check-ins are timestamped at noon on the simulated date.
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {/* Date picker */}
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
+                Demo today: {demoToday ? plannerFormatDate(demoToday) : 'real date'}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={demoToday || ''}
+                  onChange={handleDemoDateChange}
+                  id="demo-date-picker"
+                  sx={{ fontSize: '0.75rem', '& .MuiInputBase-input': { fontSize: '0.75rem', padding: '6px 8px' } }}
+                />
+                {demoToday && (
+                  <Button size="small" variant="outlined" onClick={handleUseRealDate} id="use-real-date-button" sx={{ fontSize: '0.7rem' }}>
+                    Use real date
+                  </Button>
+                )}
+              </Box>
+            </Box>
+
+            {/* Group toggle */}
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 1 }}>
+                Group assignment
+              </Typography>
+              <ToggleButtonGroup
+                value={settings?.group_assignment || 'adaptive'}
+                exclusive
+                onChange={handleGroupChange}
+                size="small"
+              >
+                <ToggleButton value="adaptive" id="demo-group-adaptive" sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Adaptive
+                </ToggleButton>
+                <ToggleButton value="fixed" id="demo-group-fixed" sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Fixed
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {/* Reset */}
+            <Box>
+              {!confirmReset ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<RefreshIcon />}
+                  onClick={() => setConfirmReset(true)}
+                  id="reset-planner-button"
+                  sx={{ fontSize: '0.7rem' }}
+                >
+                  Reset planner
+                </Button>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" color="error" sx={{ fontSize: '0.75rem' }}>
+                    This clears your plan and all planner check-ins. Are you sure?
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button size="small" variant="contained" color="error" onClick={handleResetPlanner} id="confirm-reset-planner" sx={{ fontSize: '0.7rem' }}>
+                      Yes, reset
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => setConfirmReset(false)} id="cancel-reset-planner" sx={{ fontSize: '0.7rem' }}>
+                      Cancel
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
     </Box>
   );
 }

@@ -19,6 +19,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
   const planner = usePlanner(entries);
   const todayStr = planner.todayStr;
   const todayPlanned = planner.todayPlanned;
+  const demoToday = planner.demoToday;
 
   const metrics = useMemo(() => {
     return METRIC_TYPES.map((type) => {
@@ -33,9 +34,10 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         byDay[day] = (byDay[day] || 0) + e.value;
       });
       const trendData = [];
+      const baseDate = demoToday ? new Date(demoToday + 'T12:00:00') : new Date();
       for (let i = 13; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() - i);
         const dayStr = d.toLocaleDateString('en-CA');
         const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         trendData.push({
@@ -49,7 +51,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         trendData,
       };
     });
-  }, [entries, todayStr]);
+  }, [entries, todayStr, demoToday]);
 
   const isDone = todayPlanned?.done;
   const isMissed = todayPlanned?.status === 'missed';

@@ -76,11 +76,20 @@ export default function useEntries() {
     localStorage.removeItem(STORAGE_KEY);
   }, [persist]);
 
+  /** Remove all entries matching a note string. */
+  const removeByNote = useCallback((note) => {
+    persist((prev) => {
+      const next = prev.filter((e) => e.note !== note);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [persist]);
+
   /** Reload sample data (replaces current entries). */
   const loadSampleData = useCallback(() => {
     const seed = generateSeedData();
     persist(seed);
   }, [persist]);
 
-  return { entries, add, update, remove, clearAll, loadSampleData };
+  return { entries, add, update, remove, clearAll, removeByNote, loadSampleData };
 }
