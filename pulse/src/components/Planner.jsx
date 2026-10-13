@@ -22,9 +22,10 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
 import AutoRescheduleIcon from '@mui/icons-material/Autorenew';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import TimerIcon from '@mui/icons-material/Timer';
+import CloseIcon from '@mui/icons-material/Close';
 import usePlanner from '../hooks/usePlanner';
 import { tokens } from '../theme';
 
@@ -59,15 +60,17 @@ export default function Planner({ entries, onQuickGym }) {
     dateToDayOfWeek: plannerDateToDayOfWeek,
     formatDate: plannerFormatDate,
     isWorkoutDone,
+    activeMessage,
+    clearActiveMessage,
   } = planner;
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [setupOpen, setSetupOpen] = useState(false);
   const [tempAvail, setTempAvail] = useState({});
   const [tempTarget, setTempTarget] = useState(3);
-  const [activeMessage, setActiveMessage] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [moveTargetEntry, setMoveTargetEntry] = useState(null);
+  const [detailsWorkout, setDetailsWorkout] = useState(null);
 
   const weekDates = useMemo(() => plannerGetWeekDates(weekOffset), [weekOffset, plannerGetWeekDates]);
 
@@ -164,22 +167,6 @@ export default function Planner({ entries, onQuickGym }) {
       return isAvail && !hasEntry;
     });
   }, [moveTargetEntry, availability, schedule, plannerGetWeekDates, plannerDateToDayOfWeek]);
-
-  const allDoneEarly = useMemo(() => {
-    if (!settings?.setup_complete) return false;
-    const thisWeek = plannerGetWeekDates(0);
-    const activeEntries = thisWeek.map((d) => scheduleByDate[d]).filter(Boolean);
-    if (activeEntries.length === 0) return false;
-    const completedCount = activeEntries.filter((s) => isWorkoutDone(s.scheduled_date)).length;
-    const nonMissedCount = activeEntries.filter((s) => s.status !== 'missed').length;
-    return completedCount > 0 && completedCount === nonMissedCount;
-  }, [settings, scheduleByDate, isWorkoutDone, plannerGetWeekDates]);
-
-  useEffect(() => {
-    if (allDoneEarly) {
-      setActiveMessage('plan_complete_early');
-    }
-  }, [allDoneEarly]);
 
   const isAdaptive = settings?.group_assignment === 'adaptive';
 
@@ -295,7 +282,7 @@ export default function Planner({ entries, onQuickGym }) {
         <Alert
           severity="info"
           sx={{ mb: 2, '& .MuiAlert-message': { fontSize: '0.85rem' } }}
-          onClose={() => setActiveMessage(null)}
+          onClose={clearActiveMessage}
           icon={<AutoRescheduleIcon fontSize="small" />}
         >
           {messages[activeMessage]}
@@ -363,7 +350,10 @@ export default function Planner({ entries, onQuickGym }) {
                   )}
 
                   {entry && (
-                    <Box>
+                    <Box
+                      onClick={() => entry.workout && setDetailsWorkout(entry.workout)}
+                      sx={{ cursor: entry.workout ? 'pointer' : 'default' }}
+                    >
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
                         <FitnessCenterIcon sx={{ fontSize: 16, color: 'primary.light' }} />
                         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.2 }}>
@@ -531,6 +521,61 @@ export default function Planner({ entries, onQuickGym }) {
           ))
         )}
       </Menu>
+
+      {/* Workout details dialog (tap a day card to see full workout) */}
+      <Dialog
+        open={Boolean(detailsWorkout)}
+        onClose={() => setDetailsWorkout(null)}
+        maxWidth="sm"
+        fullWidth
+        id="workout-details-dialog"
+      >
+        {detailsWorkout && (
+          <>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FitnessCenterIcon sx={{ color: 'primary.light' }} />
+                <Box>
+                  <Typography sx={{ fontSize: '1rem', fontWeight: 600 }}>{detailsWorkout.name}</Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TimerIcon sx={{ fontSize: 14 }} /> {detailsWorkout.length} min
+                  </Typography>
+                </Box>
+              </Box>
+              <IconButton size="small" onClick={() => setDetailsWorkout(null)}><CloseIcon /></IconButton>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', color: tokens.violetBright, mb: 0.5 }}>
+                  Warm-up (5 min)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', lineHeight: 1.5 }}>
+                  {detailsWorkout.warmup}
+                </Typography>
+              </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', color: tokens.violetBright, mb: 0.5 }}>
+                  Main (20 min)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', lineHeight: 1.5 }}>
+                  {detailsWorkout.main}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: '0.7rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', color: tokens.violetBright, mb: 0.5 }}>
+                  Cool-down (5 min)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', lineHeight: 1.5 }}>
+                  {detailsWorkout.cooldown}
+                </Typography>
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+              <Button onClick={() => setDetailsWorkout(null)}>Close</Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 }

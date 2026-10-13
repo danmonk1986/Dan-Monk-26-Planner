@@ -114,6 +114,7 @@ export default function usePlanner(entries) {
   const [schedule, setSchedule] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
+  const [activeMessage, setActiveMessage] = useState(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -303,6 +304,92 @@ export default function usePlanner(entries) {
     writeState(newAvail, nextSched, nextSettings);
   }, [schedule, settings, writeState]);
 
+  // ── Auto-reschedule: single sync-then-detect pass ────────────
+  // Runs when entries or schedule change. Since "done" is derived
+  // purely from gym entries, sync is implicit — we just detect
+  // misses on remaining pending workouts that have no gym entry.
+  useEffect(() => {
+    if (!loaded || !settings.setup_complete) return;
+
+    const today = getTodayStr();
+    const thisWeekDates = getWeekDates(0);
+    const isAdaptive = settings.group_assignment === 'adaptive';
+
+    // Detect missed: date before today, still pending, no gym check-in
+    const missed = schedule.filter(
+      (s) => s.scheduled_date < today && s.status === 'pending' && !gymDates.has(s.scheduled_date)
+    );
+    if (missed.length === 0) {
+      // Check early-finish: all non-missed active workouts done and count meets target
+      const weekEntries = thisWeekDates.map((d) => scheduleByDate[d]).filter(Boolean);
+      const nonMissed = weekEntries.filter((s) => s.status !== 'missed');
+      const completedCount = nonMissed.filter((s) => gymDates.has(s.scheduled_date)).length;
+      if (nonMissed.length > 0 && completedCount === nonMissed.length && completedCount >= settings.weekly_target) {
+        setActiveMessage((prev) => prev === 'plan_complete_early' ? prev : 'plan_complete_early');
+      }
+      return;
+    }
+
+    // Mark all missed
+    let nextSched = schedule.map((s) => {
+      const found = missed.find((m) => m.id === s.id);
+      return found ? { ...s, status: 'missed' } : s;
+    });
+
+    let msgKey = 'missed_midweek';
+
+    if (isAdaptive) {
+      const existingDates = new Set(nextSched.map((s) => s.scheduled_date));
+      const remainingWeekDates = thisWeekDates.filter((d) => d >= today);
+
+      const openSlots = [];
+      for (const dateStr of remainingWeekDates) {
+        const dow = dateToDayOfWeek(dateStr);
+        const isAvailable = availability[dow] ?? false;
+        if (isAvailable && !existingDates.has(dateStr)) {
+          openSlots.push(dateStr);
+        }
+      }
+
+      const missedQueue = [...missed];
+      const inserts = [];
+      for (const dateStr of openSlots) {
+        if (missedQueue.length === 0) break;
+        const m = missedQueue.shift();
+        inserts.push({
+          id: uuidv4(),
+          scheduled_date: dateStr,
+          workout_id: m.workout_id,
+          status: 'pending',
+          is_moved: true,
+          moved_from_date: m.scheduled_date,
+          moved_accepted: null,
+        });
+        existingDates.add(dateStr);
+      }
+
+      if (missedQueue.length > 0) {
+        msgKey = 'missed_no_room';
+      }
+
+      const sundayMissed = missed.some((m) => dateToDayOfWeek(m.scheduled_date) === 'Sunday');
+      if (sundayMissed && inserts.length === 0) {
+        msgKey = 'missed_sunday';
+      }
+
+      if (inserts.length > 0) {
+        nextSched = [...nextSched, ...inserts];
+      }
+    } else {
+      msgKey = 'fixed_group_missed';
+    }
+
+    writeState(availability, nextSched, settings);
+    setActiveMessage(msgKey);
+  }, [loaded, settings, schedule, availability, gymDates, scheduleByDate, writeState]);
+
+  const clearActiveMessage = useCallback(() => setActiveMessage(null), []);
+
   // ── Computed helpers exposed to UI ─────────────────────────────
 
   const todayStr = getTodayStr();
@@ -338,6 +425,9 @@ export default function usePlanner(entries) {
     dateToDayOfWeek,
     formatDate,
     isWorkoutDone: (dateStr) => gymDates.has(dateStr),
+    // message
+    activeMessage,
+    clearActiveMessage,
     // mutations
     saveSetup,
     generateWeek,
