@@ -85,11 +85,24 @@ export default function useEntries() {
     });
   }, [persist]);
 
+  /** Remove gym entries whose local date falls between start and end (YYYY-MM-DD, inclusive). */
+  const removeGymBetween = useCallback((start, end) => {
+    persist((prev) => {
+      const next = prev.filter((e) => {
+        if (e.type !== 'gym') return true;
+        const d = new Date(e.timestamp).toLocaleDateString('en-CA');
+        return d < start || d > end;
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [persist]);
+
   /** Reload sample data (replaces current entries). */
   const loadSampleData = useCallback(() => {
     const seed = generateSeedData();
     persist(seed);
   }, [persist]);
 
-  return { entries, add, update, remove, clearAll, removeByNote, loadSampleData };
+  return { entries, add, update, remove, clearAll, removeByNote, removeGymBetween, loadSampleData };
 }

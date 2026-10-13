@@ -39,7 +39,7 @@ const sectionHeading = {
 };
 
 export default function App() {
-  const { entries, add, update, remove, clearAll, removeByNote } = useEntries();
+  const { entries, add, update, remove, clearAll, removeByNote, removeGymBetween } = useEntries();
   const planner = usePlanner(entries);
   const [view, setView] = useState(0);
   const [editEntry, setEditEntry] = useState(null);
@@ -118,10 +118,12 @@ export default function App() {
 
   const handleLaunchTest = useCallback(() => {
     removeByNote('Planner check-in');
+    // Clear any gym check-ins (incl. sample data) in the test week so it starts clean.
+    removeGymBetween('2026-10-19', '2026-10-25');
     planner.launchTest('2026-10-19');
     setView(4);
     closeTesting();
-  }, [planner, removeByNote, closeTesting]);
+  }, [planner, removeByNote, removeGymBetween, closeTesting]);
 
   const demoToday = planner.demoToday;
   const groupAssignment = planner.settings?.group_assignment || 'adaptive';

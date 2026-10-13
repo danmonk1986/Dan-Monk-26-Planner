@@ -53,7 +53,8 @@ const DEFAULT_SETTINGS = {
   group_assignment: 'adaptive',
   weekly_target: 3,
   setup_complete: false,
-  demo_today: null,
+  // Prototype default: start every test on a fixed demo Monday.
+  demo_today: '2026-10-19',
 };
 
 // ── Local-date utilities (never UTC) ──────────────────────────────
@@ -170,9 +171,8 @@ export default function usePlanner(entries) {
       weekly_target: newTarget,
       setup_complete: true,
     };
-    if (!settings.setup_complete) {
-      nextSettings.group_assignment = Math.random() < 0.5 ? 'adaptive' : 'fixed';
-    }
+    // Prototype: keep the group set in Testing (default adaptive).
+    // The real experiment assigns adaptive/fixed at random at sign-up.
     writeState(newAvail, schedule, nextSettings);
   }, [settings, schedule, writeState]);
 
