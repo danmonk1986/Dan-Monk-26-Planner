@@ -1,354 +1,199 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
-import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
-import HistoryIcon from '@mui/icons-material/History';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import CircularProgress from '@mui/material/CircularProgress';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import HistoryIcon from '@mui/icons-material/History';
 import { tokens } from '../theme';
+import useMode from '../hooks/useMode';
+import { buildHistory, summarize, MODE_GROUPS, addDays } from '../data/baseline';
 
-/**
- * WeeklySummary — a single read-only screen that shows a lapsing user their
- * week's progress with a kind, AI-phrased message.
- *
- * Design contract (from the PRD):
- *   - The APP computes every number and the trend. The AI only phrases the
- *     one-sentence message. That split is a hard rule, so all math lives in
- *     `deriveTrend()` and the sentence generator is never handed a number to
- *     invent.
- *   - Everything for this feature lives in this one file: the six test states,
- *     the trend logic, the message "AI", and the UI.
- *
- * On the "AI" seam: the Pulse project has no LLM SDK, no backend, and the lab
- * forbids new dependencies, so `generateMessage()` stands in for the model
- * call. It receives only the already-computed numbers/trend and returns copy
- * that follows the brand voice and guardrails — exactly the contract a real
- * prompt would have. Swapping in a live LLM call later means replacing the body
- * of `generateMessage()` and nothing else.
- */
+const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' };
+const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+const num = (v, d = 1) => (v == null ? '—' : (Math.round(v * 10 ** d) / 10 ** d).toLocaleString());
 
-// ---------------------------------------------------------------------------
-// Test states — the six named situations this feature must handle, adapted
-// from /artifacts/data/1week.md. `lastWeek: null` means "no prior week."
-// `days` is the list of weekdays logged this week (display/context only; the
-// count the app trusts is `thisWeek`).
-// ---------------------------------------------------------------------------
-const TEST_STATES = [
-  {
-    key: 'brandNew',
-    label: 'Brand New User',
-    thisWeek: 2,
-    lastWeek: null,
-    days: ['Mon', 'Thu'],
-  },
-  {
-    key: 'flatZero',
-    label: 'Flat Zero',
-    thisWeek: 0,
-    lastWeek: 0,
-    days: [],
-  },
-  {
-    key: 'improvement',
-    label: 'Improvement',
-    thisWeek: 5,
-    lastWeek: 2,
-    days: ['Mon', 'Tue', 'Wed', 'Fri', 'Sat'],
-  },
-  {
-    key: 'lapsed',
-    label: 'Lapsed',
-    thisWeek: 1,
-    lastWeek: 3,
-    days: ['Tue'],
-  },
-  {
-    key: 'collapse',
-    label: 'Collapse',
-    thisWeek: 1,
-    lastWeek: 7,
-    days: ['Sun'],
-  },
-  {
-    key: 'steady',
-    label: 'Steady',
-    thisWeek: 4,
-    lastWeek: 4,
-    days: ['Mon', 'Wed', 'Fri', 'Sun'],
-  },
+const PERIODS = [
+  { key: '7', label: '7 days', days: 7 },
+  { key: '30', label: '30 days', days: 30 },
+  { key: 'all', label: 'All', days: null },
 ];
 
-// ---------------------------------------------------------------------------
-// Trend logic — computed by the APP, never by the AI.
-// Returns one of: 'none' | 'steady' | 'up' | 'down'.
-//   - no prior week (first week)   -> 'none' (omit the trend row)
-//   - flat at zero (0 -> 0)        -> 'none' (nothing to show movement on)
-//   - flat above zero (4 -> 4)     -> 'steady'
-//   - otherwise                    -> 'up' or 'down'
-// ---------------------------------------------------------------------------
-function deriveTrend(thisWeek, lastWeek) {
-  if (lastWeek === null || lastWeek === undefined) return 'none';
-  if (thisWeek === 0 && lastWeek === 0) return 'none';
-  if (thisWeek === lastWeek) return 'steady';
-  return thisWeek > lastWeek ? 'up' : 'down';
-}
+// Columns for the HQ vs MWD table. `better` says which direction wins.
+const COLUMNS = [
+  { key: 'days', label: 'Days', fmt: (v) => num(v, 0) },
+  { key: 'hitRate', label: 'On baseline', fmt: pct, better: 'high' },
+  { key: 'completion', label: 'Non-Neg.', fmt: pct, better: 'high' },
+  { key: 'viceLoad', label: 'Vice load / day', fmt: (v) => num(v), better: 'low' },
+  { key: 'blocks', label: 'Blocks / day', fmt: (v) => num(v, 2), better: 'high' },
+  { key: 'activityDays', label: 'Activity days', fmt: (v) => num(v, 0) },
+];
 
-// ---------------------------------------------------------------------------
-// The "AI" seam. Stands in for an LLM call: given only the app-computed
-// numbers and trend, return ONE encouraging sentence. Every candidate line
-// here is written against the guardrails:
-//   - never shames or guilts, on any week
-//   - no medical / diet / clinical advice
-//   - only references numbers the app actually provided
-//   - honest when there's no prior week to compare to
-//   - adds forward-looking framing instead of parroting the data row
-// A small random pick per situation mimics the variability of a real model.
-// ---------------------------------------------------------------------------
-function pick(lines) {
-  return lines[Math.floor(Math.random() * lines.length)];
-}
-
-function generateMessage({ thisWeek, lastWeek, trend }) {
-  // First week — nothing to compare to, so stay honest about that.
-  if (trend === 'none' && (lastWeek === null || lastWeek === undefined)) {
-    if (thisWeek === 0) {
-      return pick([
-        "A brand-new week is yours to shape — the first log is the only hard one.",
-        "You're at the very start, and that's the perfect place to be. One day is all it takes to begin.",
-      ]);
-    }
-    return pick([
-      `${cap(word(thisWeek))} ${dayWord(thisWeek)} logged in your first week — a real beginning to build on.`,
-      `You showed up ${word(thisWeek)} ${dayWord(thisWeek)} to start. That's a foundation, not a fluke — keep it going.`,
-    ]);
-  }
-
-  // Flat at zero — no prior movement, but never a scold. Open the door forward.
-  if (trend === 'none') {
-    return pick([
-      "This week is a clean slate, waiting for you. One small log is a great way in.",
-      "Nothing logged yet, and that's okay — the next week is wide open and yours to start.",
-    ]);
-  }
-
-  // Steady above zero — consistency is worth celebrating.
-  if (trend === 'steady') {
-    return pick([
-      `${cap(word(thisWeek))} ${dayWord(thisWeek)} again this week — showing up that steadily is the whole game.`,
-      `Same ${word(thisWeek)} ${dayWord(thisWeek)} as last week. That kind of consistency is exactly what carries you forward.`,
-    ]);
-  }
-
-  // Up week — more than last week. Name the lift, look ahead.
-  if (trend === 'up') {
-    return pick([
-      `${cap(word(thisWeek))} ${dayWord(thisWeek)} this week, up from ${word(lastWeek)} — you've found your rhythm again.`,
-      `You climbed from ${word(lastWeek)} to ${word(thisWeek)} ${dayWord(thisWeek)}. That's real momentum heading into next week.`,
-    ]);
-  }
-
-  // Down week — warm and forward-looking, never guilt-based.
-  return pick([
-    `${cap(word(thisWeek))} ${dayWord(thisWeek)} this week — every week resets, and this one is still yours to write.`,
-    `You logged ${word(thisWeek)} ${dayWord(thisWeek)}, and that still counts. A fresh week is right around the corner.`,
-  ]);
-}
-
-// Tiny helpers so the copy reads like prose, not a data dump.
-const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'];
-function word(n) {
-  return WORDS[n] ?? String(n);
-}
-function dayWord(n) {
-  return n === 1 ? 'day' : 'days';
-}
-function cap(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// ---------------------------------------------------------------------------
-// UI
-// ---------------------------------------------------------------------------
-const TREND_DISPLAY = {
-  up: { label: 'Up from last week', icon: TrendingUpIcon, color: '#4ADE80' },
-  down: { label: 'Down from last week', icon: TrendingDownIcon, color: '#FBBF24' },
-  steady: { label: 'Steady with last week', icon: TrendingFlatIcon, color: tokens.violetBright },
-};
-
-export default function WeeklySummary({ onOpenHistory }) {
-  const [stateKey, setStateKey] = useState(TEST_STATES[0].key);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const state = useMemo(
-    () => TEST_STATES.find((s) => s.key === stateKey) ?? TEST_STATES[0],
-    [stateKey]
+function Tile({ label, value, sub, id }) {
+  return (
+    <Card id={id} sx={{ flex: '1 1 140px' }}>
+      <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+        <Typography sx={{ ...heading, fontSize: '0.65rem', color: 'text.secondary', mb: 0.5 }}>{label}</Typography>
+        <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: '1.8rem', lineHeight: 1.1, color: 'primary.light' }}>{value}</Typography>
+        {sub && <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>{sub}</Typography>}
+      </CardContent>
+    </Card>
   );
+}
 
-  // App-computed values. The AI never touches these.
-  const trend = useMemo(
-    () => deriveTrend(state.thisWeek, state.lastWeek),
-    [state]
-  );
+/**
+ * Summary: the evidence. Baseline hit rate, vice load, bounce-back, and the
+ * core question: how does HQ Dan compare with Work (MWD) Dan?
+ */
+export default function WeeklySummary({ entries = [], onOpenHistory }) {
+  const { mode } = useMode();
+  const [period, setPeriod] = useState('7');
 
-  // "Generate" the message whenever the selected state changes. We simulate the
-  // latency of an LLM call (well under the 3s success bar) and show a spinner,
-  // which is also where a real async fetch would live.
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setMessage('');
-    const t = setTimeout(() => {
-      if (!active) return;
-      setMessage(
-        generateMessage({
-          thisWeek: state.thisWeek,
-          lastWeek: state.lastWeek,
-          trend,
-        })
-      );
-      setLoading(false);
-    }, 450);
-    return () => {
-      active = false;
-      clearTimeout(t);
-    };
-  }, [state, trend]);
+  const history = useMemo(() => buildHistory(entries, mode), [entries, mode]);
+  const { days: allDays, today, arc } = history;
 
-  const handleChange = useCallback((_, next) => {
-    if (next !== null) setStateKey(next);
-  }, []);
+  // Finished days inside the chosen period (today is shown separately)
+  const p = PERIODS.find((x) => x.key === period);
+  const from = p.days ? addDays(today, -p.days) : '0000-00-00';
+  const inPeriod = allDays.filter((d) => d.day >= from && d.day < today);
+  const overall = summarize(inPeriod);
+  const todayRow = allDays.find((d) => d.day === today);
 
-  const trendMeta = trend !== 'none' ? TREND_DISPLAY[trend] : null;
-  const TrendIcon = trendMeta?.icon;
+  const groups = MODE_GROUPS.map((g) => ({ ...g, stats: summarize(inPeriod.filter((d) => g.match(d.tag))) }))
+    .filter((g) => !g.sub || g.stats.days > 0);
+  const hq = groups.find((g) => g.key === 'hq')?.stats;
+  const mwd = groups.find((g) => g.key === 'mwd')?.stats;
+
+  // The biggest HQ vs MWD gap, in plain words (needs a few days of each)
+  const insight = useMemo(() => {
+    if (!hq || !mwd || hq.days < 3 || mwd.days < 3) return null;
+    const cands = [
+      { label: 'baseline hit rate', a: hq.hitRate, b: mwd.hitRate, scale: 1, fmt: pct, high: true },
+      { label: 'Non-Negotiables done', a: hq.completion, b: mwd.completion, scale: 1, fmt: pct, high: true },
+      { label: 'vice load per day', a: hq.viceLoad, b: mwd.viceLoad, scale: 3, fmt: (v) => num(v), high: false },
+      { label: 'productivity blocks per day', a: hq.blocks, b: mwd.blocks, scale: 2, fmt: (v) => num(v, 2), high: true },
+    ].filter((c) => c.a != null && c.b != null);
+    if (!cands.length) return null;
+    const top = cands.sort((x, y) => Math.abs(y.a - y.b) / y.scale - Math.abs(x.a - x.b) / x.scale)[0];
+    if (top.a === top.b) return null;
+    const mwdBetter = top.high ? top.b > top.a : top.b < top.a;
+    return { ...top, mwdBetter };
+  }, [hq, mwd]);
+
+  const bestIn = (key, better) => {
+    if (!better || !hq || !mwd || hq[key] == null || mwd[key] == null || hq[key] === mwd[key]) return null;
+    return (better === 'high' ? hq[key] > mwd[key] : hq[key] < mwd[key]) ? 'hq' : 'mwd';
+  };
 
   return (
-    <Box sx={{ maxWidth: 640, mx: 'auto', px: 2, py: 3 }}>
-      <Typography variant="h5" sx={{ fontSize: '1.2rem', mb: 0.5 }}>
-        This Week
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Your progress at a glance.
-      </Typography>
+    <Box sx={{ maxWidth: 900, mx: 'auto', px: 2, py: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontSize: '1.2rem', mb: 0.5 }}>Summary</Typography>
+          <Typography variant="body2" color="text.secondary">What makes Work Dan function, and what comes home to HQ?</Typography>
+        </Box>
+        <ToggleButtonGroup
+          value={period}
+          exclusive
+          onChange={(_, v) => v && setPeriod(v)}
+          size="small"
+          aria-label="Period"
+          id="summary-period"
+          sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 1.5, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+        >
+          {PERIODS.map((x) => <ToggleButton key={x.key} value={x.key} id={`summary-period-${x.key}`}>{x.label}</ToggleButton>)}
+        </ToggleButtonGroup>
+      </Box>
 
-      {/* The summary card */}
-      <Card id="weekly-summary-card">
-        <CardContent sx={{ py: 4, px: { xs: 3, sm: 4 } }}>
-          {/* Total days logged this week — the headline number */}
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-            Days logged this week
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
-            <Typography
-              component="span"
-              sx={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontSize: '3.5rem',
-                fontWeight: 700,
-                lineHeight: 1,
-                color: 'text.primary',
-              }}
-            >
-              {state.thisWeek}
-            </Typography>
-            <Typography component="span" variant="h6" sx={{ color: 'text.secondary', fontSize: '1.1rem' }}>
-              / 7
-            </Typography>
-          </Box>
+      {/* Headline tiles */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+        <Tile id="tile-hit-rate" label="On baseline" value={pct(overall.hitRate)} sub={`${overall.days} finished day${overall.days === 1 ? '' : 's'}`} />
+        <Tile id="tile-run" label="Current run" value={num(arc.run, 0)} sub={arc.dipDays > 0 ? `in a dip · ${arc.dipDays} day${arc.dipDays > 1 ? 's' : ''}` : 'days on baseline'} />
+        <Tile id="tile-vice-load" label="Vice load / day" value={num(overall.viceLoad)} sub={overall.days ? `${num(overall.viceLoad * 7)} per week` : 'no finished days yet'} />
+        <Tile id="tile-bounce" label="Bounce-back" value={overall.bounceBack == null ? '—' : `${num(overall.bounceBack)}d`} sub={overall.dips ? `avg of ${overall.dips} dip${overall.dips > 1 ? 's' : ''}` : 'no dips recovered yet'} />
+      </Box>
 
-          {/* Trend row — shown only when there's something honest to compare */}
-          {trendMeta && (
-            <Chip
-              id="weekly-summary-trend"
-              icon={<TrendIcon sx={{ fontSize: 18 }} />}
-              label={trendMeta.label}
-              sx={{
-                mb: 3,
-                fontFamily: '"Space Grotesk", sans-serif',
-                letterSpacing: '0.06em',
-                color: trendMeta.color,
-                borderColor: 'divider',
-                border: '1px solid',
-                backgroundColor: tokens.accentDim08,
-                '& .MuiChip-icon': { color: trendMeta.color },
-              }}
-              variant="outlined"
-            />
+      {/* HQ vs MWD */}
+      <Card sx={{ mb: 3 }} id="summary-modes">
+        <CardContent>
+          <Typography sx={{ ...heading, fontSize: '0.85rem', fontWeight: 700, mb: 2 }}>HQ vs MWD</Typography>
+
+          {inPeriod.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              Your first full day finishes at 4 AM (4 PM on nights). The comparison fills in from there, so live a few days in each mode.
+            </Typography>
+          ) : (
+            <Box sx={{ overflowX: 'auto' }}>
+              <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', '& th, & td': { py: 1, px: 1, textAlign: 'right', whiteSpace: 'nowrap' }, '& th:first-of-type, & td:first-of-type': { textAlign: 'left' } }}>
+                <thead>
+                  <tr>
+                    <Box component="th" sx={{ ...heading, fontSize: '0.65rem', color: 'text.secondary', fontWeight: 600 }}>Mode</Box>
+                    {COLUMNS.map((c) => (
+                      <Box component="th" key={c.key} sx={{ ...heading, fontSize: '0.65rem', color: 'text.secondary', fontWeight: 600 }}>{c.label}</Box>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {groups.map((g) => (
+                    <Box component="tr" key={g.key} id={`summary-row-${g.key}`} sx={{ borderTop: `1px solid ${tokens.borderViolet}` }}>
+                      <Box component="td" sx={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: g.sub ? 500 : 700, fontSize: g.sub ? '0.8rem' : '0.9rem', pl: g.sub ? 3 : 1, color: g.sub ? 'text.secondary' : 'text.primary' }}>
+                        {g.label}
+                      </Box>
+                      {COLUMNS.map((c) => {
+                        const wins = !g.sub && bestIn(c.key, c.better) === g.key;
+                        return (
+                          <Box component="td" key={c.key} sx={{ fontSize: g.sub ? '0.8rem' : '0.9rem', color: wins ? 'primary.light' : g.sub ? 'text.secondary' : 'text.primary', fontWeight: wins ? 700 : 400 }}>
+                            {g.stats.days ? c.fmt(g.stats[c.key]) : '—'}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  ))}
+                </tbody>
+              </Box>
+            </Box>
           )}
 
-          {/* The one AI-phrased sentence */}
-          <Box
-            id="weekly-summary-message"
-            sx={{
-              mt: trendMeta ? 0 : 1,
-              pt: 3,
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.5,
-              minHeight: 64,
-            }}
-          >
-            <AutoAwesomeIcon sx={{ color: 'primary.light', fontSize: 20, mt: 0.25, flexShrink: 0 }} />
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: 'text.secondary' }}>
-                <CircularProgress size={16} thickness={5} />
-                <Typography variant="body2" color="text.secondary">
-                  Writing your summary…
-                </Typography>
-              </Box>
-            ) : (
-              <Typography variant="body1" sx={{ color: 'text.primary', lineHeight: 1.6 }}>
-                {message}
-              </Typography>
-            )}
+          {/* Plain-words takeaway */}
+          <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, backgroundColor: tokens.accentDim08, border: `1px solid ${tokens.borderViolet}` }} id="summary-insight">
+            <Typography variant="body2" sx={{ color: insight ? 'text.primary' : 'text.secondary' }}>
+              {insight
+                ? `Biggest gap: ${insight.label}. HQ ${insight.fmt(insight.a)} vs MWD ${insight.fmt(insight.b)}. ${insight.mwdBetter ? 'Work Dan has the edge here: what about the rig makes this easier, and how do you bring it home?' : 'HQ Dan has the edge here: what is it about home that helps, and can any of it travel to the rig?'}`
+                : 'Teal marks the better mode in each column. A takeaway appears once you have at least 3 finished days in both HQ and MWD.'}
+            </Typography>
           </Box>
         </CardContent>
       </Card>
 
+      {/* Today so far */}
+      {todayRow && (
+        <Card sx={{ mb: 3 }} id="summary-today">
+          <CardContent sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'baseline' }}>
+            <Typography sx={{ ...heading, fontSize: '0.8rem', fontWeight: 700 }}>Today so far</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Non-Negotiables <Box component="span" sx={{ color: 'text.primary' }}>{todayRow.done}/{todayRow.total}</Box>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Vice load <Box component="span" sx={{ color: 'text.primary' }}>{num(todayRow.vices)}/{num(todayRow.limit)}</Box>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Blocks <Box component="span" sx={{ color: 'text.primary' }}>{num(todayRow.blocks, 2)}</Box>
+            </Typography>
+            <Typography variant="body2" sx={{ color: todayRow.meets ? 'primary.light' : 'text.secondary', fontWeight: 600 }}>
+              {todayRow.meets ? 'On baseline' : 'Not on baseline yet'}
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
       {onOpenHistory && (
-        <Button
-          variant="outlined"
-          startIcon={<HistoryIcon />}
-          onClick={onOpenHistory}
-          id="summary-history-button"
-          sx={{ mt: 2 }}
-        >
+        <Button variant="outlined" startIcon={<HistoryIcon />} onClick={onOpenHistory} id="summary-history-button">
           View full history
         </Button>
       )}
-
-      {/* Test-state switcher — click through the six situations */}
-      <Box sx={{ mt: 4 }}>
-        <Typography
-          variant="subtitle1"
-          sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.12em' }}
-        >
-          Test states
-        </Typography>
-        <ToggleButtonGroup
-          value={stateKey}
-          exclusive
-          onChange={handleChange}
-          aria-label="Weekly summary test state"
-          sx={{ flexWrap: 'wrap', gap: 1, '& .MuiToggleButton-root': { borderRadius: '10px !important', border: '1px solid', borderColor: 'divider', px: 2 } }}
-        >
-          {TEST_STATES.map((s) => (
-            <ToggleButton key={s.key} value={s.key} id={`test-state-${s.key}`} sx={{ fontSize: '0.72rem' }}>
-              {s.label}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-      </Box>
     </Box>
   );
 }

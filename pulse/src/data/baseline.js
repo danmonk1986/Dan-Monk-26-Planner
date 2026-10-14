@@ -1,4 +1,4 @@
-import { itemsForDay, isItemDone, routineDayKey } from './nonNegotiables';
+import { itemsForDay, isItemDone, routineDayKey, loadItems, loadTicks, totalsByDay as _totalsByDay } from './nonNegotiables';
 import { viceWeight } from './logTypes';
 
 /**
@@ -112,3 +112,80 @@ export function curve(statusOf, today, start) {
   for (let i = days.length - 1; i >= 0 && days[i] === 'baseline'; i--) run++;
   return { run, dipDays: dipLen, lastBounce };
 }
+
+/* ───────────────────────── Summary ───────────────────────── */
+
+
+/**
+ * Every tracked routine day from the first one to today, with its result.
+ * Each finished day is judged by the mode it was lived in.
+ */
+export function buildHistory(entries, mode, now = new Date()) {
+  const items = loadItems();
+  const ticks = loadTicks();
+  const totals = _totalsByDay(entries, mode);
+  const vices = vicesByDay(entries, mode);
+  const dayModes = loadDayModes();
+  const limits = loadTolerance();
+  const today = routineDayKey(mode, now);
+  const start = firstDay(ticks, entries, mode);
+  const modeTag = mode.place === 'mwd' ? `mwd-${mode.shift}` : 'hq';
+  const entryDays = new Set(entries.map((e) => routineDayKey(mode, new Date(e.timestamp))));
+  const tagOf = (d) => (d === today ? modeTag : dayModes[d] || 'unrecorded');
+  const ctx = {
+    items, ticks, totals, vices, today, start,
+    tolerance: (d) => limitFor(limits, tagOf(d)),
+    hasEntry: (d) => entryDays.has(d),
+  };
+  const statusOf = (d) => dayStatus(d, ctx);
+
+  const days = [];
+  if (start) {
+    for (let d = start; d <= today; d = addDays(d, 1)) {
+      const s = statusOf(d);
+      days.push({
+        ...s,
+        tag: tagOf(d),
+        blocks: totals[d]?.productivity || 0,
+        activityMin: totals[d]?.gym || 0,
+      });
+    }
+  }
+  return { days, today, start, arc: curve(statusOf, today, start) };
+}
+
+// Lengths of each dip that ended back on baseline
+export function bounceBacks(days) {
+  const out = [];
+  let len = 0;
+  days.forEach((d) => {
+    if (d.status === 'dip') len++;
+    else if (d.status === 'baseline') { if (len > 0) out.push(len); len = 0; }
+  });
+  return out;
+}
+
+const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+
+// Aggregate finished days (not today) into one row of stats
+export function summarize(days) {
+  const done = days.filter((d) => d.status === 'baseline' || d.status === 'dip');
+  const bb = bounceBacks(days);
+  return {
+    days: done.length,
+    hitRate: done.length ? done.filter((d) => d.status === 'baseline').length / done.length : null,
+    completion: avg(done.map((d) => (d.total ? d.done / d.total : 0))),
+    viceLoad: avg(done.map((d) => d.vices)),
+    blocks: avg(done.map((d) => d.blocks)),
+    activityDays: done.filter((d) => d.activityMin >= 30).length,
+    bounceBack: avg(bb),
+    dips: bb.length,
+  };
+}
+
+export const MODE_GROUPS = [
+  { key: 'hq', label: 'HQ', match: (t) => t === 'hq' },
+  { key: 'mwd', label: 'MWD', match: (t) => String(t).startsWith('mwd') },
+  { key: 'mwd-days', label: 'MWD · Days', match: (t) => t === 'mwd-days', sub: true },
+  { key: 'mwd-nights', label: 'MWD · Nights', match: (t) => t === 'mwd-nights', sub: true },
+];

@@ -249,7 +249,7 @@ export default function App() {
             onDelete={remove}
           />
         )}
-        {view === 3 && <WeeklySummary onOpenHistory={() => setView(2)} />}
+        {view === 3 && <WeeklySummary entries={entries} onOpenHistory={() => setView(2)} />}
         {view === 4 && (
           <Planner
             planner={planner}
