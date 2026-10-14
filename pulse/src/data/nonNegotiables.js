@@ -15,17 +15,21 @@ export const SECTIONS = [
 ];
 
 export const DEFAULT_ITEMS = [
-  { id: 'wake', label: 'Wake up', section: 'morning', anchor: 'wake' },
-  { id: 'water-coffee', label: 'Water before coffee', section: 'morning' },
-  { id: 'rise-shine', label: 'Rise to Shine ritual', section: 'morning' },
+  { id: 'wake', label: 'Wake Up', section: 'morning', anchor: 'wake' },
+  { id: 'rise-shine', label: 'Rise to Shine Ritual', section: 'morning' },
   { id: 'power-up', label: 'Power Up', section: 'morning' },
-  { id: 'productivity', label: '1 productivity block', section: 'midday', time: '09:30' },
+  { id: 'water-coffee', label: 'Water Before Coffee', section: 'morning' },
+  { id: 'productivity', label: '1 Productivity Block', section: 'midday', time: '09:30' },
   { id: 'activity', label: 'Activity 3 × 10', section: 'midday', weekly: 4 },
-  { id: 'water-pills', label: 'Water + pills', section: 'evening', time: '19:30' },
-  { id: 'chill', label: 'Chill time · 1.5 h', section: 'evening' },
-  { id: 'gratitude', label: 'Gratitude ritual', section: 'evening' },
+  { id: 'water-pills', label: 'Water + Pills', section: 'evening', time: '19:30' },
+  { id: 'chill', label: 'Power Down', section: 'evening' },
+  { id: 'gratitude', label: 'Gratitude Ritual', section: 'evening' },
   { id: 'bed', label: 'Bed', section: 'evening', anchor: 'bed' },
 ];
+
+// Title Case every word except "to" (e.g. "Rise to Shine Ritual")
+export const titleCase = (text) =>
+  text.split(' ').map((w, i) => (i > 0 && w.toLowerCase() === 'to' ? 'to' : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 
 const ITEMS_KEY = 'monk.nn.items';
 const TICKS_KEY = 'monk.nn.ticks';
@@ -42,7 +46,16 @@ function write(key, value) {
 
 export const loadItems = () => {
   const items = read(ITEMS_KEY, null);
-  return Array.isArray(items) ? items : DEFAULT_ITEMS.map((i) => ({ ...i }));
+  if (!Array.isArray(items)) return DEFAULT_ITEMS.map((i) => ({ ...i }));
+  // v2: "Chill time" became "Power Down"; Water Before Coffee moved to the end of Morning
+  const order = DEFAULT_ITEMS.map((d) => d.id);
+  // Built-in items in default order; added items keep their order after them
+  const rank = (i, idx) => (order.includes(i.id) ? order.indexOf(i.id) : 1000 + idx);
+  return items
+    .map((i) => (i.id === 'chill' && /^chill time/i.test(i.label) ? { ...i, label: 'Power Down' } : i))
+    .map((i, idx) => ({ i, r: rank(i, idx) }))
+    .sort((a, b) => a.r - b.r)
+    .map(({ i }) => i);
 };
 export const saveItems = (items) => write(ITEMS_KEY, items);
 export const loadTicks = () => read(TICKS_KEY, {});

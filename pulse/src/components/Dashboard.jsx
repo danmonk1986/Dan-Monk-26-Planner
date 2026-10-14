@@ -192,6 +192,38 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         </Box>
       )}
 
+      {/* Where I am: HQ / MWD (days / nights) */}
+      <Box sx={{ mb: 2 }} id="mode-switch">
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <ToggleButtonGroup
+            value={mode.place}
+            exclusive
+            onChange={(_, v) => v && setMode({ place: v })}
+            size="small"
+            aria-label="Where I am: HQ or MWD"
+            id="mode-place"
+            sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 2, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+          >
+            <ToggleButton value="hq" id="goals-mode-hq">HQ</ToggleButton>
+            <ToggleButton value="mwd" id="goals-mode-mwd">MWD</ToggleButton>
+          </ToggleButtonGroup>
+          {mode.place === 'mwd' && (
+            <ToggleButtonGroup
+              value={mode.shift}
+              exclusive
+              onChange={(_, v) => v && setMode({ shift: v })}
+              size="small"
+              aria-label="Shift: days or nights"
+              id="mode-shift"
+              sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 1.5, gap: 0.5, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+            >
+              <ToggleButton value="days" id="mode-shift-days"><WbSunnyIcon sx={{ fontSize: 16 }} />Days</ToggleButton>
+              <ToggleButton value="nights" id="mode-shift-nights"><NightlightIcon sx={{ fontSize: 16 }} />Nights</ToggleButton>
+            </ToggleButtonGroup>
+          )}
+        </Box>
+      </Box>
+
       {/* Daily baseline */}
       <NonNegotiables />
 
@@ -230,35 +262,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         </Card>
       )}
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <ToggleButtonGroup
-          value={mode.place}
-          exclusive
-          onChange={(_, v) => v && setMode({ place: v })}
-          size="small"
-          aria-label="Where I am: HQ or MWD"
-          id="mode-place"
-          sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 2, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
-        >
-          <ToggleButton value="hq" id="goals-mode-hq">HQ</ToggleButton>
-          <ToggleButton value="mwd" id="goals-mode-mwd">MWD</ToggleButton>
-        </ToggleButtonGroup>
-        {mode.place === 'mwd' && (
-          <ToggleButtonGroup
-            value={mode.shift}
-            exclusive
-            onChange={(_, v) => v && setMode({ shift: v })}
-            size="small"
-            aria-label="Shift: days or nights"
-            id="mode-shift"
-            sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 1.5, gap: 0.5, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
-          >
-            <ToggleButton value="days" id="mode-shift-days"><WbSunnyIcon sx={{ fontSize: 16 }} />Days</ToggleButton>
-            <ToggleButton value="nights" id="mode-shift-nights"><NightlightIcon sx={{ fontSize: 16 }} />Nights</ToggleButton>
-          </ToggleButtonGroup>
-        )}
-        </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {/* Placeholder: Daily Goals get fleshed out next */}
           <Button variant="outlined" size="small" startIcon={<FlagIcon />} id="daily-goals-button" sx={{ fontSize: '0.75rem' }}>

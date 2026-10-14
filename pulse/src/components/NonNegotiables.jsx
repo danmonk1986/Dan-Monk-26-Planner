@@ -17,7 +17,7 @@ import useMode from '../hooks/useMode';
 import { shiftClock, dayAnchors } from '../lib/shiftTime';
 import {
   SECTIONS, DEFAULT_ITEMS, loadItems, saveItems, loadTicks, saveTicks,
-  routineDayKey, currentSection, itemsForDay, weeklyCount,
+  routineDayKey, currentSection, itemsForDay, weeklyCount, titleCase,
 } from '../data/nonNegotiables';
 
 const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' };
@@ -171,7 +171,7 @@ export default function NonNegotiables() {
                             sx={{ p: 0.5, color: tokens.borderViolet, '&.Mui-checked': { color: 'primary.light' } }}
                           />
                           <Typography sx={{ fontSize: '0.875rem', flex: 1, color: ticked ? 'text.secondary' : 'text.primary', textDecoration: ticked ? 'line-through' : 'none' }}>
-                            {item.label}
+                            {titleCase(item.label)}
                           </Typography>
                           {item.weekly && (
                             <Typography sx={{ fontSize: '0.7rem', color: 'primary.light', whiteSpace: 'nowrap' }}>
