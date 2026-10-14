@@ -184,9 +184,6 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
           </Box>
         </Box>
       )}
-          </Box>
-        </Box>
-      )}
 
       {/* Today's planned workout card */}
       {todayPlanned && (
