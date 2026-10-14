@@ -210,7 +210,7 @@ export default function App() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {/* Intro */}
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', lineHeight: 1.5 }}>
-            Tools for testing this prototype. Not part of the student app.
+            How to test: tap Launch test, set up a week, then use the date arrows to skip a day and watch the planner adapt. These tools are for testing only and are not part of the student app.
           </Typography>
 
           {/* ── Date section ── */}
