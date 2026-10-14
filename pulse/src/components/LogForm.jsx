@@ -10,6 +10,8 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
 import CheckIcon from '@mui/icons-material/Check';
+import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
+import WaterBottleIcon from '@mui/icons-material/WaterDrop';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import { tokens } from '../theme';
@@ -17,7 +19,13 @@ import { LOG_TYPES, STEPS_TYPE } from '../data/logTypes';
 
 const TYPES = LOG_TYPES;
 
-const WATER_PRESETS = [250, 350, 500, 750];
+// My two containers: one glass, one bottle
+const WATER_SIZES = [
+  { key: 'glass', label: 'Glass', ml: 500 },
+  { key: 'bottle', label: 'Bottle', ml: 750 },
+];
+// Types logged without a number: H2O picks a container, Vices count 1 per note
+const NO_VALUE_TYPES = ['water', 'vices'];
 
 /**
  * Form to add or edit a health entry.
@@ -30,6 +38,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
   const [type, setType] = useState(initialType);
   // Activity can be logged as minutes or steps
   const [activityMode, setActivityMode] = useState('minutes');
+  // H2O container
+  const [waterSize, setWaterSize] = useState('glass');
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
   const [datetime, setDatetime] = useState('');
@@ -45,6 +55,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
         setType(editEntry.type);
         setActivityMode('minutes');
       }
+      if (editEntry.type === 'water') setWaterSize(editEntry.value >= 750 ? 'bottle' : 'glass');
       setValue(String(editEntry.value));
       setNote(editEntry.note || '');
       // Convert ISO to datetime-local format
@@ -80,7 +91,12 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
 
   function handleSubmit(e) {
     e.preventDefault();
-    const numValue = parseFloat(value);
+    let numValue = parseFloat(value);
+    if (type === 'water') numValue = (WATER_SIZES.find((w) => w.key === waterSize) || WATER_SIZES[0]).ml;
+    if (type === 'vices') {
+      if (!note.trim()) return; // the note is the entry
+      numValue = 1;
+    }
     if (isNaN(numValue) || numValue <= 0) return;
 
     const entry = {
@@ -106,10 +122,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
     }, 1200);
   }
 
-  function handleWaterPreset(amount) {
-    setType('water');
-    setValue(String(amount));
-  }
+
 
   return (
     <Box sx={{ maxWidth: 520, mx: 'auto', px: 2, py: 3 }}>
@@ -181,29 +194,24 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
             </ToggleButtonGroup>
           )}
 
-          {/* Water quick presets */}
+          {/* H2O: glass or bottle */}
           {type === 'water' && (
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Quick presets
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {WATER_PRESETS.map((amount) => (
-                  <Chip
-                    key={amount}
-                    label={`${amount} ml`}
-                    onClick={() => handleWaterPreset(amount)}
-                    variant={value === String(amount) ? 'filled' : 'outlined'}
-                    color="primary"
-                    sx={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600 }}
-                    id={`water-preset-${amount}`}
-                  />
-                ))}
-              </Box>
-            </Box>
+            <ToggleButtonGroup
+              value={waterSize}
+              exclusive
+              onChange={(_, v) => v && setWaterSize(v)}
+              fullWidth
+              aria-label="Glass or bottle"
+              id="water-size"
+              sx={{ '& .MuiToggleButton-root': { py: 1.5, gap: 1, fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.85rem', letterSpacing: '0.08em', '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+            >
+              <ToggleButton value="glass" id="water-glass"><LocalDrinkIcon fontSize="small" />Glass</ToggleButton>
+              <ToggleButton value="bottle" id="water-bottle"><WaterBottleIcon fontSize="small" />Bottle</ToggleButton>
+            </ToggleButtonGroup>
           )}
 
-          {/* Value input */}
+          {/* Value input (not for H2O or Vices) */}
+          {!NO_VALUE_TYPES.includes(type) && (
           <TextField
             label={`Value (${currentType.unit})`}
             type="number"
@@ -216,13 +224,15 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
             helperText={type === 'productivity' && value ? `= ${(parseFloat(value) * 1.5 || 0).toLocaleString()} hours` : undefined}
             id="log-value-input"
           />
+          )}
 
           {/* Note input (most useful for food) */}
           <TextField
-            label="Note (optional)"
+            label={type === 'vices' ? 'What was it?' : 'Note (optional)'}
+            required={type === 'vices'}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={type === 'food' ? 'e.g. Grilled chicken salad' : 'Optional note'}
+            placeholder={type === 'food' ? 'e.g. Grilled chicken salad' : type === 'vices' ? 'e.g. Beer at lunch' : 'Optional note'}
             fullWidth
             id="log-note-input"
           />

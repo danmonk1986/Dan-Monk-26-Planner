@@ -1,34 +1,45 @@
 import { useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import generateSeedData from '../data/seed';
 
 const STORAGE_KEY = 'pulse.entries';
+const PURGE_KEY = 'monk.sampleDataRemoved';
+
+// Matches entries made by the old sample-data generator (data/seed.js)
+const SAMPLE_MEALS = new Set([
+  'Oatmeal with berries', 'Grilled chicken salad', 'Salmon with rice', 'Yogurt parfait',
+  'Turkey sandwich', 'Pasta with vegetables', 'Eggs and toast', 'Stir-fry tofu bowl',
+  'Smoothie bowl', 'Chicken wrap', 'Lentil soup', 'Avocado toast',
+]);
+export function isSampleEntry(e) {
+  if (e.type === 'food') return e.unit === 'kcal' && SAMPLE_MEALS.has(e.note);
+  if (e.type === 'steps') return e.unit === 'steps' && !e.note && /T21:00:00\.000Z$/.test(e.timestamp);
+  if (e.type === 'sleep') return !e.note && /T07:00:00\.000Z$/.test(e.timestamp);
+  if (e.type === 'gym') return e.unit === 'minutes' && !e.note;
+  if (e.type === 'water') return e.unit === 'ml' && !e.note && [250, 350, 500].includes(e.value) && /:00\.000Z$/.test(e.timestamp);
+  return false;
+}
 
 /**
  * Custom hook for managing health entries in localStorage.
- * Auto-loads seed data on first run (empty storage).
+ * Starts empty (no sample data).
  */
 export default function useEntries() {
   const [entries, setEntries] = useState([]);
 
-  // Load entries from localStorage on mount
+  // Load entries from localStorage on mount. No sample data: this is a real
+  // log, so it starts empty. Old sample entries are removed once.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setEntries(JSON.parse(stored));
-      } catch {
-        // Corrupted data — start fresh with seed
-        const seed = generateSeedData();
-        setEntries(seed);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-      }
-    } else {
-      // First run — load sample data
-      const seed = generateSeedData();
-      setEntries(seed);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+    let list = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      list = Array.isArray(parsed) ? parsed : [];
+    } catch { list = []; }
+    if (localStorage.getItem(PURGE_KEY) !== '1') {
+      list = list.filter((e) => !isSampleEntry(e));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(PURGE_KEY, '1');
     }
+    setEntries(list);
   }, []);
 
   // Persist to localStorage whenever entries change (skip initial empty state)
@@ -98,11 +109,8 @@ export default function useEntries() {
     });
   }, [persist]);
 
-  /** Reload sample data (replaces current entries). */
-  const loadSampleData = useCallback(() => {
-    const seed = generateSeedData();
-    persist(seed);
-  }, [persist]);
+  /** Sample data is retired in this build; kept as a no-op for old callers. */
+  const loadSampleData = useCallback(() => {}, []);
 
   return { entries, add, update, remove, clearAll, removeByNote, removeGymBetween, loadSampleData };
 }
