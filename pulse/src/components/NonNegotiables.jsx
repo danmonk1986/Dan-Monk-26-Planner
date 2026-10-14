@@ -20,6 +20,9 @@ import {
   routineDayKey, currentSection, itemsForDay, weeklyCount, titleCase,
   AUTO_RULES, totalsByDay, isItemDone,
 } from '../data/nonNegotiables';
+import {
+  BASELINE_PCT, loadTolerance, saveTolerance, recordDayMode, vicesByDay, firstDay, dayStatus, curve, addDays,
+} from '../data/baseline';
 
 const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' };
 
@@ -51,6 +54,19 @@ export default function NonNegotiables({ entries = [] }) {
   const totals = useMemo(() => totalsByDay(entries, mode), [entries, mode]);
   const isDone = (id) => isItemDone(id, day, ticks, totals);
   const done = todays.filter((i) => isDone(i.id)).length;
+
+  // ── Baseline → dip → bounce back ──
+  const [tolerance, setTolerance] = useState(loadTolerance);
+  useEffect(() => { recordDayMode(day, mode); }, [day, mode]);
+  const vices = useMemo(() => vicesByDay(entries, mode), [entries, mode]);
+  const entryDays = useMemo(() => new Set(entries.map((e) => routineDayKey(mode, new Date(e.timestamp)))), [entries, mode]);
+  const start = useMemo(() => firstDay(ticks, entries, mode), [ticks, entries, mode]);
+  const ctx = { items, ticks, totals, vices, tolerance, today: day, start, hasEntry: (d) => entryDays.has(d) };
+  const statusOf = (d) => dayStatus(d, ctx);
+  const week = Array.from({ length: 7 }, (_, k) => statusOf(addDays(day, k - 6)));
+  const today = week[6];
+  const arc = curve(statusOf, day, start);
+  const need = Math.ceil(today.total * BASELINE_PCT);
 
   const updateItems = (next) => { setItems(next); saveItems(next); };
 
@@ -219,6 +235,59 @@ export default function NonNegotiables({ entries = [] }) {
               </Box>
             );
           })}
+        </Box>
+
+        {/* Baseline strip: last 7 days + where I am on the curve */}
+        <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${tokens.borderViolet}`, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }} id="baseline-strip">
+          <Box sx={{ display: 'flex', gap: 0.75 }} aria-label="Last 7 days">
+            {week.map((d) => {
+              const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(`${d.day}T12:00:00`).getDay()];
+              const fill = d.status === 'baseline' ? tokens.violetBright
+                : d.status === 'today' && d.meets ? tokens.violetBright
+                : d.status === 'dip' ? tokens.violet : 'transparent';
+              const title = d.status === 'none' ? 'Not tracked'
+                : d.status === 'today' ? `Today: ${d.done}/${d.total} · ${d.vices} vice${d.vices === 1 ? '' : 's'}`
+                : `${d.status === 'baseline' ? 'Baseline' : 'Dip'}: ${d.done}/${d.total} · ${d.vices} vice${d.vices === 1 ? '' : 's'}`;
+              return (
+                <Box key={d.day} title={title} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.25 }}>
+                  <Box sx={{
+                    width: 14, height: 14, borderRadius: '50%', backgroundColor: fill,
+                    border: '2px solid', borderColor: d.status === 'none' ? tokens.borderViolet : d.status === 'today' ? tokens.violetBright : fill,
+                    opacity: d.status === 'dip' ? 0.7 : 1,
+                  }} />
+                  <Typography sx={{ fontSize: '0.6rem', color: d.status === 'today' ? 'primary.light' : 'text.secondary' }}>{label}</Typography>
+                </Box>
+              );
+            })}
+          </Box>
+
+          <Box sx={{ flex: 1, minWidth: 200 }}>
+            <Typography sx={{ ...heading, fontSize: '0.75rem', fontWeight: 700, color: today.meets ? 'primary.light' : 'text.primary' }} id="baseline-status">
+              {today.meets ? 'On baseline today' : arc.dipDays > 0 ? 'Bounce back today' : `${Math.max(0, need - today.done)} to baseline`}
+            </Typography>
+            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }} id="baseline-detail">
+              {[
+                `${today.done}/${need} needed`,
+                `vices ${today.vices}/${tolerance}`,
+                arc.run > 0 ? `${arc.run}-day run` : null,
+                arc.dipDays > 0 ? `dip ${arc.dipDays} day${arc.dipDays > 1 ? 's' : ''}` : null,
+                arc.lastBounce ? `last bounce-back ${arc.lastBounce} day${arc.lastBounce > 1 ? 's' : ''}` : null,
+              ].filter(Boolean).join(' · ')}
+            </Typography>
+          </Box>
+
+          {editing && (
+            <TextField
+              label="Vice tolerance / day"
+              type="number"
+              size="small"
+              value={tolerance}
+              onChange={(e) => { const v = Math.max(0, parseInt(e.target.value, 10) || 0); setTolerance(v); saveTolerance(v); }}
+              inputProps={{ min: 0, step: 1 }}
+              sx={{ width: 170 }}
+              id="vice-tolerance"
+            />
+          )}
         </Box>
       </CardContent>
     </Card>
