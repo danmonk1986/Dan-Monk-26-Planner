@@ -1,8 +1,14 @@
 /**
- * Dashboard quotes. One is picked at random each time the Dashboard opens.
- * Add your own: { text: '...', author: '...' } (author is optional).
- * Leave the list empty to hide the quote line.
+ * Built-in dashboard quotes. One is shown at random on the Dashboard; the
+ * Inspiration shuffle button picks another. Quotes added with the + button
+ * are saved on the device (localStorage) and mixed in with these.
+ * Use \n inside text for a line break.
  */
-const QUOTES = [];
+const QUOTES = [
+  {
+    text: 'Once you stop chasing the wrong things,\nThe right ones catch you.',
+    author: 'KUSHANDWIZDOM',
+  },
+];
 
 export default QUOTES;
