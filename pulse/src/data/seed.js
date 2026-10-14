@@ -43,17 +43,6 @@ function generateSeedData() {
       });
     }
 
-    // --- Steps: 1 entry per day ---
-    const steps = 3000 + Math.floor(Math.random() * 9000);
-    entries.push({
-      id: uuidv4(),
-      type: 'steps',
-      timestamp: `${dateStr}T21:00:00.000Z`,
-      value: steps,
-      unit: 'steps',
-      note: '',
-    });
-
     // --- Water: 3–5 entries per day ---
     const waterCount = 3 + Math.floor(Math.random() * 3);
     const waterAmounts = [250, 250, 350, 500, 250];

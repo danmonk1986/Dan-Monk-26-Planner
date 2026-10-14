@@ -23,6 +23,7 @@ import MetricCard from './MetricCard';
 import MovedWorkoutDialog from './MovedWorkoutDialog';
 import { tokens } from '../theme';
 import QUOTES from '../data/quotes';
+import { LOG_TYPES } from '../data/logTypes';
 
 const GOALS_MODE_KEY = 'monk.dailyGoalsMode';
 const MY_QUOTES_KEY = 'monk.quotes';
@@ -55,7 +56,7 @@ function useMountainClock() {
   return { date, time };
 }
 
-const METRIC_TYPES = ['food', 'steps', 'water', 'sleep', 'gym'];
+const METRIC_TYPES = LOG_TYPES.map((t) => t.value);
 
 export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGym, onNavigatePlanner, planner }) {
   const todayStr = planner.todayStr;
@@ -265,7 +266,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       {/* Metric cards */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {metrics.map((m) => (
-          <Box key={m.type} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(20% - 13px)' } }}>
+          <Box key={m.type} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(33.333% - 11px)' } }}>
             <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} onQuickAdd={() => onQuickAdd(m.type)} />
           </Box>
         ))}

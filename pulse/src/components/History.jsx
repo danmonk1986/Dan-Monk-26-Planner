@@ -14,43 +14,21 @@ import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import BedtimeIcon from '@mui/icons-material/Bedtime';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import TrendChart from './TrendChart';
 import { tokens } from '../theme';
+import { LOG_TYPES, isShownType } from '../data/logTypes';
 
-const TYPE_ICONS = {
-  food: RestaurantIcon,
-  steps: DirectionsWalkIcon,
-  water: WaterDropIcon,
-  sleep: BedtimeIcon,
-  gym: FitnessCenterIcon,
-};
-
-const TYPE_LABELS = {
-  food: 'Food',
-  steps: 'Steps',
-  water: 'Water',
-  sleep: 'Sleep',
-  gym: 'Gym',
-};
-
-const TYPE_UNITS = {
-  food: 'kcal',
-  steps: 'steps',
-  water: 'ml',
-  sleep: 'hours',
-  gym: 'minutes',
-};
+const TYPE_ICONS = Object.fromEntries(LOG_TYPES.map((t) => [t.value, t.icon]));
+const TYPE_LABELS = Object.fromEntries(LOG_TYPES.map((t) => [t.value, t.label]));
+const TYPE_UNITS = Object.fromEntries(LOG_TYPES.map((t) => [t.value, t.unit]));
 
 /**
  * History screen: filterable entry list with edit/delete, plus full per-metric chart.
  */
-export default function History({ entries, onEdit, onDelete }) {
+export default function History({ entries: allEntries, onEdit, onDelete }) {
+  // Retired types (e.g. old Steps entries) are hidden
+  const entries = useMemo(() => allEntries.filter((e) => isShownType(e.type)), [allEntries]);
   const [filter, setFilter] = useState('all');
   const [chartType, setChartType] = useState('food');
 
@@ -97,7 +75,7 @@ export default function History({ entries, onEdit, onDelete }) {
           Start tracking to see your history
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Log your first entry — food, steps, water, or sleep — and it will appear here with charts showing your trends over time.
+          Log your first entry and it will appear here with charts showing your trends over time.
         </Typography>
       </Box>
     );

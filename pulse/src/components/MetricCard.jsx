@@ -5,27 +5,17 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import AddIcon from '@mui/icons-material/Add';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import BedtimeIcon from '@mui/icons-material/Bedtime';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import TrendChart from './TrendChart';
 import { tokens } from '../theme';
 
-const METRIC_CONFIG = {
-  food: { icon: RestaurantIcon, label: 'Food', unit: 'kcal', color: tokens.violet },
-  steps: { icon: DirectionsWalkIcon, label: 'Steps', unit: 'steps', color: tokens.violet },
-  water: { icon: WaterDropIcon, label: 'Water', unit: 'ml', color: tokens.violet },
-  sleep: { icon: BedtimeIcon, label: 'Sleep', unit: 'hours', color: tokens.violet },
-  gym: { icon: FitnessCenterIcon, label: 'Gym', unit: 'min', color: tokens.violet },
-};
+import { LOG_TYPE_MAP } from '../data/logTypes';
+
 
 /**
  * Dashboard metric card: today's total, mini trend chart, and quick-add button.
  */
 export default function MetricCard({ type, todayTotal, trendData, onQuickAdd }) {
-  const config = METRIC_CONFIG[type];
+  const config = LOG_TYPE_MAP[type];
   const Icon = config.icon;
 
   return (

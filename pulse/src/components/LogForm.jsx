@@ -9,21 +9,11 @@ import ButtonGroup from '@mui/material/ButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
-import BedtimeIcon from '@mui/icons-material/Bedtime';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CheckIcon from '@mui/icons-material/Check';
 import { tokens } from '../theme';
+import { LOG_TYPES } from '../data/logTypes';
 
-const TYPES = [
-  { value: 'food', label: 'Food', icon: <RestaurantIcon />, unit: 'kcal', placeholder: 'e.g. 450' },
-  { value: 'steps', label: 'Steps', icon: <DirectionsWalkIcon />, unit: 'steps', placeholder: 'e.g. 8000' },
-  { value: 'water', label: 'Water', icon: <WaterDropIcon />, unit: 'ml', placeholder: 'e.g. 250' },
-  { value: 'sleep', label: 'Sleep', icon: <BedtimeIcon />, unit: 'hours', placeholder: 'e.g. 7.5' },
-  { value: 'gym', label: 'Gym', icon: <FitnessCenterIcon />, unit: 'minutes', placeholder: 'e.g. 45' },
-];
+const TYPES = LOG_TYPES;
 
 const WATER_PRESETS = [250, 350, 500, 750];
 
@@ -129,6 +119,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
               fullWidth
               size="small"
               aria-label="Entry type"
+              sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' }, gap: 1, '& .MuiToggleButton-root': { borderRadius: '10px !important', border: `1px solid ${tokens.borderViolet} !important`, m: 0 } }}
             >
               {TYPES.map((t) => (
                 <ToggleButton
@@ -148,7 +139,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
                     },
                   }}
                 >
-                  {t.icon}
+                  {React.createElement(t.icon, { fontSize: 'small' })}
                   {t.label}
                 </ToggleButton>
               ))}
@@ -186,7 +177,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
             placeholder={currentType.placeholder}
             required
             fullWidth
-            inputProps={{ min: 0, step: type === 'sleep' ? 0.1 : 1 }}
+            inputProps={{ min: 0, step: currentType.step }}
             id="log-value-input"
           />
 
