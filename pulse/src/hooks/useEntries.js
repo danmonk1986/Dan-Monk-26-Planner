@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 const STORAGE_KEY = 'pulse.entries';
 const PURGE_KEY = 'monk.sampleDataRemoved';
 
-// Matches entries made by the old sample-data generator (data/seed.js)
+// Matches entries made by the old sample-data generator (now removed)
 const SAMPLE_MEALS = new Set([
   'Oatmeal with berries', 'Grilled chicken salad', 'Salmon with rice', 'Yogurt parfait',
   'Turkey sandwich', 'Pasta with vegetables', 'Eggs and toast', 'Stir-fry tofu bowl',
@@ -87,30 +87,5 @@ export default function useEntries() {
     localStorage.removeItem(STORAGE_KEY);
   }, [persist]);
 
-  /** Remove all entries matching a note string. */
-  const removeByNote = useCallback((note) => {
-    persist((prev) => {
-      const next = prev.filter((e) => e.note !== note);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, [persist]);
-
-  /** Remove gym entries whose local date falls between start and end (YYYY-MM-DD, inclusive). */
-  const removeGymBetween = useCallback((start, end) => {
-    persist((prev) => {
-      const next = prev.filter((e) => {
-        if (e.type !== 'gym') return true;
-        const d = new Date(e.timestamp).toLocaleDateString('en-CA');
-        return d < start || d > end;
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, [persist]);
-
-  /** Sample data is retired in this build; kept as a no-op for old callers. */
-  const loadSampleData = useCallback(() => {}, []);
-
-  return { entries, add, update, remove, clearAll, removeByNote, removeGymBetween, loadSampleData };
+  return { entries, add, update, remove, clearAll };
 }

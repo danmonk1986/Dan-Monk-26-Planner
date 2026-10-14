@@ -9,7 +9,6 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InsightsIcon from '@mui/icons-material/Insights';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import BiotechIcon from '@mui/icons-material/Biotech';
 import logo from '../assets/dan-monk-logo.png';
 import tagline from '../assets/tagline.png';
 import { tokens } from '../theme';
@@ -18,27 +17,19 @@ import Chip from '@mui/material/Chip';
 import useMode from '../hooks/useMode';
 import { modeLabel } from '../lib/shiftTime';
 
-const TESTING_VIEW = -1;
-
 /**
  * App header with the Dan Monk logo and responsive navigation.
  * Mobile (≤600px): BottomNavigation fixed to bottom.
  * Desktop: Tabs in the header.
  */
-export default function Nav({ view, onChangeView, onOpenTesting }) {
+export default function Nav({ view, onChangeView }) {
   const isMobile = useMediaQuery('(max-width:600px)');
   const { mode } = useMode();
   // Log (1) and History (2) are reached from Dashboard / Summary, not the menu,
   // so nothing is highlighted while they're open.
   const tabValue = [0, 3, 4].includes(view) ? view : false;
 
-  const handleChange = (_, v) => {
-    if (v === TESTING_VIEW) {
-      onOpenTesting();
-    } else {
-      onChangeView(v);
-    }
-  };
+  const handleChange = (_, v) => onChangeView(v);
 
   return (
     <>

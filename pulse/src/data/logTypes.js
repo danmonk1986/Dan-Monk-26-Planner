@@ -12,7 +12,7 @@ import CoffeeIcon from '@mui/icons-material/Coffee';
  * the Log form and History all read from here.
  *
  * `value` is the stored entry type. Activity keeps the stored type 'gym'
- * (the Workout Planner's check-ins use it), Rest keeps 'sleep' and H2O keeps
+ * (older entries use it), Rest keeps 'sleep' and H2O keeps
  * 'water', so existing entries carry straight over. Steps are logged as an
  * option under Activity (STEPS_TYPE below).
  */

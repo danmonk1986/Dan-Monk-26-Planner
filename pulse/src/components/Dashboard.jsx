@@ -2,9 +2,6 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Chip from '@mui/material/Chip';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import ToggleButton from '@mui/material/ToggleButton';
 import ButtonGroup from '@mui/material/ButtonGroup';
 import Dialog from '@mui/material/Dialog';
@@ -20,12 +17,8 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import EventBusyIcon from '@mui/icons-material/EventBusy';
 import MetricCard from './MetricCard';
 import NonNegotiables from './NonNegotiables';
-import MovedWorkoutDialog from './MovedWorkoutDialog';
 import { tokens } from '../theme';
 import QUOTES from '../data/quotes';
 import { LOG_TYPES } from '../data/logTypes';
@@ -67,8 +60,7 @@ function useMountainClock() {
 
 const METRIC_TYPES = LOG_TYPES.map((t) => t.value);
 
-export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGym, onNavigatePlanner, planner }) {
-  const todayPlanned = planner.todayPlanned;
+export default function Dashboard({ entries, onQuickAdd }) {
 
   // App-wide mode (HQ / MWD, days / nights)
   const { mode, setMode } = useMode();
@@ -148,9 +140,6 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     .filter((e) => e.type === 'break' && entryDay(e) === todayStr)
     .reduce((sum, e) => sum + (e.qty || 1), 0), [entries, todayStr, mode]);
 
-  const isDone = todayPlanned?.done;
-  const isMissed = todayPlanned?.status === 'missed';
-  const isPending = todayPlanned?.status === 'pending' && !isDone;
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: 2, py: 3 }}>
@@ -274,40 +263,6 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       {/* Daily baseline (or the log cards, via the view toggle) */}
       {dashView === 'nn' && <NonNegotiables entries={entries} onLog={(p) => onQuickAdd(p.type, p)} />}
 
-      {/* Today's planned workout card */}
-      {todayPlanned && (
-        <Card id="dashboard-planned-workout" sx={{ mb: 3, borderColor: isPending ? tokens.accentBorder40 : tokens.borderViolet }}>
-          <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <FitnessCenterIcon sx={{ color: 'primary.light', fontSize: 28 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.65rem', fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary' }}>
-                Today's Workout
-              </Typography>
-              <Typography sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
-                {todayPlanned.workout?.name}
-              </Typography>
-              {todayPlanned.is_moved && todayPlanned.moved_from_date && (
-                <Typography sx={{ fontSize: '0.7rem', color: tokens.violetBright, mt: 0.25 }}>
-                  Rescheduled from {planner.formatDate(todayPlanned.moved_from_date)}
-                </Typography>
-              )}
-            </Box>
-            {isDone && (
-              <Chip icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} label="Done" size="small"
-                sx={{ fontSize: '0.7rem', color: '#4ADE80', border: '1px solid', borderColor: 'rgba(74,222,128,0.3)', backgroundColor: 'rgba(74,222,128,0.08)' }} />
-            )}
-            {isPending && (
-              <Button size="small" variant="outlined" onClick={onQuickGym} id="dashboard-checkin-button" sx={{ fontSize: '0.7rem' }}>
-                Check in
-              </Button>
-            )}
-            {isMissed && (
-              <Chip icon={<EventBusyIcon sx={{ fontSize: 14 }} />} label="Missed" size="small"
-                sx={{ fontSize: '0.7rem', color: '#FBBF24', border: '1px solid', borderColor: 'rgba(251,191,36,0.3)', backgroundColor: 'rgba(251,191,36,0.08)' }} />
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Add a quote */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
@@ -335,7 +290,6 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       </Box>
       )}
 
-      <MovedWorkoutDialog planner={planner} />
     </Box>
   );
 }
