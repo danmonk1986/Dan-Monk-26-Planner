@@ -36,6 +36,7 @@ const BRANDS = {
   // purple accent, teal highlights (matches the logo shadow), grey panels.
   monk: {
     name: 'UNDENIABLE IN 2026',
+    title: 'Dan Monk 2026 Planner', // browser tab + footer credit
     accent: '#8169AF',        // purple
     accentBright: '#76CABA',  // teal
     accentRGB: '129,105,175',
