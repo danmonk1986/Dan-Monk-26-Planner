@@ -5,6 +5,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import BlockIcon from '@mui/icons-material/Block';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
+import CoffeeIcon from '@mui/icons-material/Coffee';
 
 /**
  * The one list of things you can log, in display order. Dashboard cards,
@@ -29,5 +30,9 @@ export const LOG_TYPES = [
 // count as a planner workout and minutes and steps are never added together)
 export const STEPS_TYPE = { value: 'steps', label: 'Steps', icon: DirectionsWalkIcon, unit: 'steps', step: 1, placeholder: 'e.g. 8000', parent: 'gym' };
 
-export const LOG_TYPE_MAP = Object.fromEntries([...LOG_TYPES, STEPS_TYPE].map((t) => [t.value, t]));
+// Logged under Rest as an option: short breaks (30:5 work-to-rest), kept
+// separate from sleep hours so neither number gets muddied
+export const BREAK_TYPE = { value: 'break', label: 'Break', icon: CoffeeIcon, unit: 'min', step: 1, placeholder: 'e.g. 5', parent: 'sleep', defaultValue: '5' };
+
+export const LOG_TYPE_MAP = Object.fromEntries([...LOG_TYPES, STEPS_TYPE, BREAK_TYPE].map((t) => [t.value, t]));
 export const isShownType = (type) => Boolean(LOG_TYPE_MAP[type]);

@@ -17,7 +17,7 @@ import WaterBottleIcon from '@mui/icons-material/WaterDrop';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import { tokens } from '../theme';
-import { LOG_TYPES, STEPS_TYPE } from '../data/logTypes';
+import { LOG_TYPES, STEPS_TYPE, BREAK_TYPE } from '../data/logTypes';
 
 const TYPES = LOG_TYPES;
 
@@ -40,6 +40,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
   const [type, setType] = useState(initialType);
   // Activity can be logged as minutes or steps
   const [activityMode, setActivityMode] = useState('minutes');
+  // Rest can be logged as sleep or a break
+  const [restMode, setRestMode] = useState('sleep');
   // H2O container
   const [waterSize, setWaterSize] = useState('glass');
   // Repeats in one entry: 3 × 10 min, 5 × Glass, 2 × 1 block
@@ -55,6 +57,9 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
       if (editEntry.type === 'steps') {
         setType('gym');
         setActivityMode('steps');
+      } else if (editEntry.type === 'break') {
+        setType('sleep');
+        setRestMode('break');
       } else {
         setType(editEntry.type);
         setActivityMode('minutes');
@@ -95,7 +100,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
   }, []);
 
   const isSteps = type === 'gym' && activityMode === 'steps';
-  const currentType = isSteps ? STEPS_TYPE : TYPES.find((t) => t.value === type);
+  const isBreak = type === 'sleep' && restMode === 'break';
+  const currentType = isSteps ? STEPS_TYPE : isBreak ? BREAK_TYPE : TYPES.find((t) => t.value === type);
 
   // e.g. "= 30 min", "= 2.5 L", "= 3 blocks"
   function qtySummary() {
@@ -143,6 +149,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
       resetForm();
       setType(initialType);
       setActivityMode('minutes');
+      setRestMode('sleep');
     }, 1200);
   }
 
@@ -215,6 +222,22 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
             >
               <ToggleButton value="minutes" id="activity-mode-minutes">Minutes</ToggleButton>
               <ToggleButton value="steps" id="activity-mode-steps">Steps</ToggleButton>
+            </ToggleButtonGroup>
+          )}
+
+          {/* Rest: sleep or a break */}
+          {type === 'sleep' && (
+            <ToggleButtonGroup
+              value={restMode}
+              exclusive
+              onChange={(_, v) => { if (v) { setRestMode(v); setValue(v === 'break' ? BREAK_TYPE.defaultValue : ''); } }}
+              size="small"
+              aria-label="Rest type"
+              id="rest-mode"
+              sx={{ alignSelf: 'flex-start', '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 2, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+            >
+              <ToggleButton value="sleep" id="rest-mode-sleep">Sleep</ToggleButton>
+              <ToggleButton value="break" id="rest-mode-break">Break</ToggleButton>
             </ToggleButtonGroup>
           )}
 

@@ -143,6 +143,10 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
   const stepsToday = useMemo(() => entries
     .filter((e) => e.type === 'steps' && entryDay(e) === todayStr)
     .reduce((sum, e) => sum + e.value, 0), [entries, todayStr, mode]);
+  // Breaks logged under Rest (count uses the × quantity)
+  const breaksToday = useMemo(() => entries
+    .filter((e) => e.type === 'break' && entryDay(e) === todayStr)
+    .reduce((sum, e) => sum + (e.qty || 1), 0), [entries, todayStr, mode]);
 
   const isDone = todayPlanned?.done;
   const isMissed = todayPlanned?.status === 'missed';
@@ -324,7 +328,8 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         {metrics.map((m) => (
           <Box key={m.type} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(33.333% - 11px)' } }}>
             <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} todayEntries={m.todayEntries} onQuickAdd={() => onQuickAdd(m.type)}
-              extra={m.type === 'gym' && stepsToday > 0 ? `${stepsToday.toLocaleString()} steps` : null} />
+              extra={m.type === 'gym' && stepsToday > 0 ? `${stepsToday.toLocaleString()} steps`
+                : m.type === 'sleep' && breaksToday > 0 ? `${breaksToday} break${breaksToday > 1 ? 's' : ''}` : null} />
           </Box>
         ))}
       </Box>
