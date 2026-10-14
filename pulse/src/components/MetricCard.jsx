@@ -14,7 +14,10 @@ import { LOG_TYPE_MAP } from '../data/logTypes';
 /**
  * Dashboard metric card: today's total, mini trend chart, and quick-add button.
  */
-export default function MetricCard({ type, todayTotal, trendData, onQuickAdd, extra = null }) {
+// These cards list today's entries (value + note) instead of a trend graph
+const LIST_TYPES = ['productivity', 'vices'];
+
+export default function MetricCard({ type, todayTotal, trendData, onQuickAdd, extra = null, todayEntries = [] }) {
   const config = LOG_TYPE_MAP[type];
   const Icon = config.icon;
 
@@ -65,10 +68,36 @@ export default function MetricCard({ type, todayTotal, trendData, onQuickAdd, ex
           {config.unit} today{extra ? ` · ${extra}` : ''}
         </Typography>
 
-        {/* Mini trend chart (last 7–14 days) */}
-        <Box sx={{ mx: -1, mb: -1 }}>
-          <TrendChart data={trendData} mini />
-        </Box>
+        {LIST_TYPES.includes(type) ? (
+          /* Today's notes */
+          <Box sx={{ mt: 1, pb: 1.5 }} id={`metric-notes-${type}`}>
+            {todayEntries.length === 0 ? (
+              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontStyle: 'italic' }}>Nothing logged yet today</Typography>
+            ) : (
+              todayEntries.slice(0, 5).map((e) => (
+                <Box key={e.id} sx={{ display: 'flex', gap: 1, alignItems: 'baseline', py: 0.4, borderTop: `1px solid ${tokens.accentDim12}` }}>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'primary.light', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {e.value.toLocaleString()}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: e.note ? 'text.primary' : 'text.secondary', fontStyle: e.note ? 'normal' : 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    {e.note || 'no note'}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                    {new Date(e.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </Typography>
+                </Box>
+              ))
+            )}
+            {todayEntries.length > 5 && (
+              <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mt: 0.5 }}>+{todayEntries.length - 5} more in History</Typography>
+            )}
+          </Box>
+        ) : (
+          /* Mini trend chart (last 14 days) */
+          <Box sx={{ mx: -1, mb: -1 }}>
+            <TrendChart data={trendData} mini />
+          </Box>
+        )}
       </CardContent>
     </Card>
   );

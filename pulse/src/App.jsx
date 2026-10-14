@@ -229,6 +229,7 @@ export default function App() {
             onSubmit={handleLogSubmit}
             editEntry={editEntry}
             onCancel={editEntry ? handleCancelEdit : undefined}
+            onClose={() => { const back = editEntry ? 2 : 0; setEditEntry(null); setView(back); }}
           />
         )}
         {view === 2 && (

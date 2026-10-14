@@ -10,6 +10,8 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
 import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import IconButton from '@mui/material/IconButton';
 import { tokens } from '../theme';
 import { LOG_TYPES, STEPS_TYPE } from '../data/logTypes';
 
@@ -24,7 +26,7 @@ const WATER_PRESETS = [250, 350, 500, 750];
  *   editEntry   – if provided, the form pre-fills for editing
  *   onCancel    – called when editing is cancelled
  */
-export default function LogForm({ onSubmit, editEntry = null, onCancel, initialType = 'food' }) {
+export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose, initialType = 'food' }) {
   const [type, setType] = useState(initialType);
   // Activity can be logged as minutes or steps
   const [activityMode, setActivityMode] = useState('minutes');
@@ -111,9 +113,16 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, initialT
 
   return (
     <Box sx={{ maxWidth: 520, mx: 'auto', px: 2, py: 3 }}>
-      <Typography variant="h5" sx={{ mb: 3, fontSize: '1.2rem' }}>
-        {editEntry ? 'Edit Entry' : 'Log Entry'}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontSize: '1.2rem' }}>
+          {editEntry ? 'Edit Entry' : 'Log Entry'}
+        </Typography>
+        {onClose && (
+          <IconButton onClick={onClose} aria-label="Close" id="log-close-button" sx={{ color: 'text.secondary', '&:hover': { color: 'primary.light' } }}>
+            <CloseIcon />
+          </IconButton>
+        )}
+      </Box>
 
       <Card>
         <CardContent component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>

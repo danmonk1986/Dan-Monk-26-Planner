@@ -31,6 +31,7 @@ import QUOTES from '../data/quotes';
 import { LOG_TYPES } from '../data/logTypes';
 import useMode from '../hooks/useMode';
 import { dayAnchors } from '../lib/shiftTime';
+import { routineDayKey } from '../data/nonNegotiables';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import NightlightIcon from '@mui/icons-material/Nightlight';
 
@@ -67,27 +68,31 @@ function useMountainClock() {
 const METRIC_TYPES = LOG_TYPES.map((t) => t.value);
 
 export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGym, onNavigatePlanner, planner }) {
-  const todayStr = planner.todayStr;
   const todayPlanned = planner.todayPlanned;
-  const demoToday = planner.demoToday;
+
+  // App-wide mode (HQ / MWD, days / nights)
+  const { mode, setMode } = useMode();
+  // Log cards use the real routine day (4 AM to 4 AM, flips on nights),
+  // the same day the Non-Negotiables use; not the Testing tab's demo date.
+  const todayStr = routineDayKey(mode);
+  const entryDay = (e) => routineDayKey(mode, new Date(e.timestamp));
 
   const metrics = useMemo(() => {
     return METRIC_TYPES.map((type) => {
       const typeEntries = entries.filter((e) => e.type === type);
-      const todayEntries = typeEntries.filter(
-        (e) => new Date(e.timestamp).toLocaleDateString('en-CA') === todayStr
-      );
+      const todayEntries = typeEntries
+        .filter((e) => entryDay(e) === todayStr)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       const todayTotal = todayEntries.reduce((sum, e) => sum + e.value, 0);
       const byDay = {};
       typeEntries.forEach((e) => {
-        const day = new Date(e.timestamp).toLocaleDateString('en-CA');
+        const day = entryDay(e);
         byDay[day] = (byDay[day] || 0) + e.value;
       });
       const trendData = [];
-      const baseDate = demoToday ? new Date(demoToday + 'T12:00:00') : new Date();
+      const [ty, tm, td] = todayStr.split('-').map(Number);
       for (let i = 13; i >= 0; i--) {
-        const d = new Date(baseDate);
-        d.setDate(baseDate.getDate() - i);
+        const d = new Date(ty, tm - 1, td - i, 12);
         const dayStr = d.toLocaleDateString('en-CA');
         const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         trendData.push({
@@ -97,11 +102,12 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       }
       return {
         type,
-        todayTotal: Math.round(todayTotal * 10) / 10,
+        todayTotal: Math.round(todayTotal * 100) / 100,
         trendData,
+        todayEntries,
       };
     });
-  }, [entries, todayStr, demoToday]);
+  }, [entries, todayStr, mode]);
 
   const clock = useMountainClock();
   // Quotes: built-in list + ones added on this device. One random per visit.
@@ -131,14 +137,12 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     try { localStorage.setItem('monk.dashView', next); } catch { /* ignore */ }
   };
 
-  // App-wide mode (HQ / MWD, days / nights)
-  const { mode, setMode } = useMode();
   const anchors = dayAnchors(mode);
 
 
   const stepsToday = useMemo(() => entries
-    .filter((e) => e.type === 'steps' && new Date(e.timestamp).toLocaleDateString('en-CA') === todayStr)
-    .reduce((sum, e) => sum + e.value, 0), [entries, todayStr]);
+    .filter((e) => e.type === 'steps' && entryDay(e) === todayStr)
+    .reduce((sum, e) => sum + e.value, 0), [entries, todayStr, mode]);
 
   const isDone = todayPlanned?.done;
   const isMissed = todayPlanned?.status === 'missed';
@@ -319,7 +323,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }} id="dashboard-log-view">
         {metrics.map((m) => (
           <Box key={m.type} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(33.333% - 11px)' } }}>
-            <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} onQuickAdd={() => onQuickAdd(m.type)}
+            <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} todayEntries={m.todayEntries} onQuickAdd={() => onQuickAdd(m.type)}
               extra={m.type === 'gym' && stepsToday > 0 ? `${stepsToday.toLocaleString()} steps` : null} />
           </Box>
         ))}
