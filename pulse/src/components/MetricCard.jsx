@@ -8,7 +8,7 @@ import AddIcon from '@mui/icons-material/Add';
 import TrendChart from './TrendChart';
 import { tokens } from '../theme';
 
-import { LOG_TYPE_MAP } from '../data/logTypes';
+import { LOG_TYPE_MAP, viceShort } from '../data/logTypes';
 
 
 /**
@@ -90,6 +90,11 @@ export default function MetricCard({ type, todayTotal, trendData, onQuickAdd, ex
             ) : (
               todayEntries.slice(0, 5).map((e) => (
                 <Box key={e.id} sx={{ display: 'flex', gap: 1, alignItems: 'baseline', py: 0.4, borderTop: `1px solid ${tokens.accentDim12}` }}>
+                  {type === 'vices' && (
+                    <Typography title="Weight" sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'primary.main', border: `1px solid ${tokens.borderViolet}`, borderRadius: '6px', px: 0.6, lineHeight: 1.6 }}>
+                      {viceShort(e)}
+                    </Typography>
+                  )}
                   {type === 'vices' && (e.qty || 1) > 1 && (
                     <Typography sx={{ fontSize: '0.75rem', color: 'primary.light', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       ×{e.qty}

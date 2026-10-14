@@ -35,4 +35,26 @@ export const STEPS_TYPE = { value: 'steps', label: 'Steps', icon: DirectionsWalk
 export const BREAK_TYPE = { value: 'break', label: 'Break', icon: CoffeeIcon, unit: 'min', step: 1, placeholder: 'e.g. 5', parent: 'sleep', defaultValue: '5' };
 
 export const LOG_TYPE_MAP = Object.fromEntries([...LOG_TYPES, STEPS_TYPE, BREAK_TYPE].map((t) => [t.value, t]));
+// Vice weights: how far a vice pulls me off baseline (load vs my daily limit)
+export const VICE_WEIGHTS = [
+  { key: 'light', label: 'Light', short: 'L', weight: 0.5 },
+  { key: 'medium', label: 'Medium', short: 'M', weight: 1 },
+  { key: 'heavy', label: 'Heavy', short: 'H', weight: 3 },
+];
+export const viceWeight = (e) => (VICE_WEIGHTS.find((w) => w.key === e.weight) || VICE_WEIGHTS[1]).weight;
+export const viceShort = (e) => (VICE_WEIGHTS.find((w) => w.key === e.weight) || VICE_WEIGHTS[1]).short;
+
+// Remember the weight I used last time for each vice note
+const VICE_MEMORY_KEY = 'monk.viceWeights';
+export function rememberedWeight(note) {
+  try { return JSON.parse(localStorage.getItem(VICE_MEMORY_KEY) || '{}')[note.trim().toLowerCase()] || null; } catch { return null; }
+}
+export function rememberWeight(note, weight) {
+  try {
+    const all = JSON.parse(localStorage.getItem(VICE_MEMORY_KEY) || '{}');
+    all[note.trim().toLowerCase()] = weight;
+    localStorage.setItem(VICE_MEMORY_KEY, JSON.stringify(all));
+  } catch { /* ignore */ }
+}
+
 export const isShownType = (type) => Boolean(LOG_TYPE_MAP[type]);

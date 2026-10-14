@@ -1,4 +1,5 @@
 import { itemsForDay, isItemDone, routineDayKey } from './nonNegotiables';
+import { viceWeight } from './logTypes';
 
 /**
  * Baseline -> dip -> bounce back (the Mental Toughness curve).
@@ -14,7 +15,7 @@ const DAY_MODES_KEY = 'monk.dayModes';
 
 export function loadTolerance() {
   try {
-    const v = parseInt(localStorage.getItem(TOLERANCE_KEY), 10);
+    const v = parseFloat(localStorage.getItem(TOLERANCE_KEY));
     return Number.isFinite(v) && v >= 0 ? v : 1;
   } catch { return 1; }
 }
@@ -44,13 +45,13 @@ export function addDays(day, n) {
   return keyOf(new Date(y, m - 1, d + n));
 }
 
-// Vices per routine day (uses the × quantity)
+// Weighted vice load per routine day: quantity × weight (Light 0.5, Medium 1, Heavy 3)
 export function vicesByDay(entries, mode) {
   const out = {};
   entries.forEach((e) => {
     if (e.type !== 'vices') return;
     const d = routineDayKey(mode, new Date(e.timestamp));
-    out[d] = (out[d] || 0) + (e.qty || e.value || 1);
+    out[d] = Math.round(((out[d] || 0) + (e.qty || 1) * viceWeight(e)) * 100) / 100;
   });
   return out;
 }

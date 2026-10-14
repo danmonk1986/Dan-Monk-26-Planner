@@ -17,7 +17,7 @@ import WaterBottleIcon from '@mui/icons-material/WaterDrop';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import { tokens } from '../theme';
-import { LOG_TYPES, STEPS_TYPE, BREAK_TYPE } from '../data/logTypes';
+import { LOG_TYPES, STEPS_TYPE, BREAK_TYPE, VICE_WEIGHTS, rememberedWeight, rememberWeight } from '../data/logTypes';
 
 const TYPES = LOG_TYPES;
 
@@ -46,6 +46,9 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
   const [waterSize, setWaterSize] = useState('glass');
   // Repeats in one entry: 3 × 10 min, 5 × Glass, 2 × 1 block
   const [qty, setQty] = useState(1);
+  // Vice weight (Light / Medium / Heavy); pre-picked from my last use of the same note
+  const [viceWeight, setViceWeight] = useState('medium');
+  const [weightTouched, setWeightTouched] = useState(false);
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
   const [datetime, setDatetime] = useState('');
@@ -66,6 +69,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
       }
       const q = editEntry.qty && editEntry.qty > 1 ? editEntry.qty : 1;
       setQty(q);
+      setViceWeight(editEntry.weight || 'medium');
+      setWeightTouched(true);
       const each = editEntry.value / q;
       if (editEntry.type === 'water') setWaterSize(editEntry.container || (each >= 750 ? 'bottle' : 'glass'));
       setValue(String(Math.round(each * 100) / 100));
@@ -131,6 +136,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
       type: currentType.value,
       value: Math.round(numValue * times * 100) / 100,
       qty: times,
+      ...(type === 'vices' ? { weight: viceWeight } : {}),
       ...(type === 'water' ? { container: waterSize } : {}),
       unit: currentType.unit,
       note: note.trim(),
@@ -141,6 +147,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
       entry.id = editEntry.id;
     }
 
+    if (type === 'vices') rememberWeight(entry.note, viceWeight);
     onSubmit(entry);
     setSubmitted(true);
 
@@ -150,6 +157,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
       setType(initialType);
       setActivityMode('minutes');
       setRestMode('sleep');
+      setViceWeight('medium');
+      setWeightTouched(false);
     }, 1200);
   }
 
@@ -297,11 +306,38 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
             label={type === 'vices' ? 'What was it?' : 'Note (optional)'}
             required={type === 'vices'}
             value={note}
-            onChange={(e) => setNote(e.target.value)}
+            onChange={(e) => {
+              setNote(e.target.value);
+              if (type === 'vices' && !weightTouched) {
+                const w = rememberedWeight(e.target.value);
+                if (w) setViceWeight(w);
+              }
+            }}
             placeholder={type === 'food' ? 'e.g. Grilled chicken salad' : type === 'vices' ? 'e.g. Beer at lunch' : 'Optional note'}
             fullWidth
             id="log-note-input"
           />
+
+          {/* Vice weight */}
+          {type === 'vices' && (
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Weight</Typography>
+              <ToggleButtonGroup
+                value={viceWeight}
+                exclusive
+                onChange={(_, v) => { if (v) { setViceWeight(v); setWeightTouched(true); } }}
+                fullWidth
+                size="small"
+                aria-label="Vice weight"
+                id="vice-weight"
+                sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+              >
+                {VICE_WEIGHTS.map((w) => (
+                  <ToggleButton key={w.key} value={w.key} id={`vice-weight-${w.key}`}>{w.label}</ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
+          )}
 
           {/* Date/time picker */}
           <TextField

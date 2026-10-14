@@ -246,8 +246,8 @@ export default function NonNegotiables({ entries = [] }) {
                 : d.status === 'today' && d.meets ? tokens.violetBright
                 : d.status === 'dip' ? tokens.violet : 'transparent';
               const title = d.status === 'none' ? 'Not tracked'
-                : d.status === 'today' ? `Today: ${d.done}/${d.total} · ${d.vices} vice${d.vices === 1 ? '' : 's'}`
-                : `${d.status === 'baseline' ? 'Baseline' : 'Dip'}: ${d.done}/${d.total} · ${d.vices} vice${d.vices === 1 ? '' : 's'}`;
+                : d.status === 'today' ? `Today: ${d.done}/${d.total} · vice load ${d.vices}`
+                : `${d.status === 'baseline' ? 'Baseline' : 'Dip'}: ${d.done}/${d.total} · vice load ${d.vices}`;
               return (
                 <Box key={d.day} title={title} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.25 }}>
                   <Box sx={{
@@ -268,7 +268,7 @@ export default function NonNegotiables({ entries = [] }) {
             <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }} id="baseline-detail">
               {[
                 `${today.done}/${need} needed`,
-                `vices ${today.vices}/${tolerance}`,
+                `vice load ${today.vices}/${tolerance}`,
                 arc.run > 0 ? `${arc.run}-day run` : null,
                 arc.dipDays > 0 ? `dip ${arc.dipDays} day${arc.dipDays > 1 ? 's' : ''}` : null,
                 arc.lastBounce ? `last bounce-back ${arc.lastBounce} day${arc.lastBounce > 1 ? 's' : ''}` : null,
@@ -278,12 +278,12 @@ export default function NonNegotiables({ entries = [] }) {
 
           {editing && (
             <TextField
-              label="Vice tolerance / day"
+              label="Vice limit / day"
               type="number"
               size="small"
               value={tolerance}
-              onChange={(e) => { const v = Math.max(0, parseInt(e.target.value, 10) || 0); setTolerance(v); saveTolerance(v); }}
-              inputProps={{ min: 0, step: 1 }}
+              onChange={(e) => { const v = Math.max(0, Math.round((parseFloat(e.target.value) || 0) * 2) / 2); setTolerance(v); saveTolerance(v); }}
+              inputProps={{ min: 0, step: 0.5 }}
               sx={{ width: 170 }}
               id="vice-tolerance"
             />
