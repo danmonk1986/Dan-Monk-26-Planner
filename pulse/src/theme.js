@@ -85,23 +85,16 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#0A0A0F',
-          // Subtle circuit-grid background
-          backgroundImage: `
-            linear-gradient(${BORDER_VIOLET} 1px, transparent 1px),
-            linear-gradient(90deg, ${BORDER_VIOLET} 1px, transparent 1px),
-            radial-gradient(ellipse at 0% 100%, ${GLOW_VIOLET} 0%, transparent 50%)
-          `,
-          backgroundSize: '60px 60px, 60px 60px, 100% 100%',
-          backgroundPosition: 'center center',
-          backgroundAttachment: 'fixed',
+          backgroundColor: '#05040F',
+          // Cyberpunk backdrop is drawn by <CyberBackground />
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: '#14141C',
+          backgroundColor: 'rgba(20,20,28,0.82)',
+          backdropFilter: 'blur(6px)',
           border: `1px solid ${BORDER_VIOLET}`,
           borderRadius: 12,
           boxShadow: `0 0 24px rgba(${brand.accentBrightRGB},0.12)`,
@@ -200,7 +193,7 @@ const theme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          backgroundColor: '#1C1B27',
+          backgroundColor: brand.surfaceRaised,
           border: `1px solid ${BORDER_VIOLET}`,
         },
       },
@@ -208,7 +201,7 @@ const theme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: '#1C1B27',
+          backgroundColor: brand.surfaceRaised,
           border: `1px solid ${BORDER_VIOLET}`,
           color: '#F5F5FA',
         },

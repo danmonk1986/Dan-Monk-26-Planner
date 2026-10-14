@@ -12,20 +12,19 @@ import HistoryIcon from '@mui/icons-material/History';
 import InsightsIcon from '@mui/icons-material/Insights';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BiotechIcon from '@mui/icons-material/Biotech';
-import PulseLine from './PulseLine';
+import logo from '../assets/dan-monk-logo.png';
 import { tokens } from '../theme';
 import brand from '../brand';
 
 const TESTING_VIEW = -1;
 
 /**
- * App header with PulseLine logo and responsive navigation.
+ * App header with the Dan Monk logo and responsive navigation.
  * Mobile (≤600px): BottomNavigation fixed to bottom.
  * Desktop: Tabs in the header.
  */
 export default function Nav({ view, onChangeView, onOpenTesting }) {
   const isMobile = useMediaQuery('(max-width:600px)');
-  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   const handleChange = (_, v) => {
     if (v === TESTING_VIEW) {
@@ -56,7 +55,12 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
       >
         {/* Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <PulseLine width={120} height={28} animate={!prefersReducedMotion} />
+          <Box
+            component="img"
+            src={logo}
+            alt="Dan Monk"
+            sx={{ height: { xs: 40, sm: 48 }, width: 'auto', display: 'block' }}
+          />
           <Typography
             variant="h5"
             sx={{

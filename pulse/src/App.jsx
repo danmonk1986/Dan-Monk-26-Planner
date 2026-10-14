@@ -19,6 +19,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Nav from './components/Nav';
+import CyberBackground from './components/CyberBackground';
 import Dashboard from './components/Dashboard';
 import LogForm from './components/LogForm';
 import History from './components/History';
@@ -178,6 +179,7 @@ export default function App() {
         flexDirection: 'column',
       }}
     >
+      <CyberBackground />
       <Nav view={view} onChangeView={setView} onOpenTesting={() => { setView(4); setTestingOpen(true); }} />
 
       {/* Testing strip (prototype only): Workout Planner page */}

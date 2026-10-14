@@ -32,9 +32,21 @@ const BRANDS = {
     accentBrightRGB: '255,59,84',
     surfaceRaised: '#1C1B27',
   },
+  // Dan Monk 26 Planner: personal build (Bolt). Dan Monk palette:
+  // purple accent, teal highlights (matches the logo shadow), grey panels.
+  monk: {
+    name: 'UNDENIABLE IN 2026',
+    accent: '#8169AF',        // purple
+    accentBright: '#76CABA',  // teal
+    accentRGB: '129,105,175',
+    accentBrightRGB: '118,202,186',
+    surfaceRaised: '#454343', // grey
+  },
 };
 
-const key = import.meta.env.VITE_BRAND === 'yorku' ? 'yorku' : 'pulse';
+const key = ['yorku', 'monk'].includes(import.meta.env.VITE_BRAND)
+  ? import.meta.env.VITE_BRAND
+  : 'pulse';
 
 export const brand = BRANDS[key];
 export default brand;
