@@ -24,6 +24,7 @@ import Dashboard from './components/Dashboard';
 import LogForm from './components/LogForm';
 import History from './components/History';
 import WeeklySummary from './components/WeeklySummary';
+import Routines from './components/Routines';
 import Planner from './components/Planner';
 import TestBar from './components/TestBar';
 import TESTS, { TEST_WEEK_START, TEST_WEEK_END } from './data/testScript';
@@ -191,8 +192,8 @@ export default function App() {
       <CyberBackground />
       <Nav view={view} onChangeView={setView} onOpenTesting={() => { setView(4); setTestingOpen(true); }} />
 
-      {/* Testing strip (prototype only): Workout Planner page */}
-      {view === 4 && (
+      {/* Testing strip retired with the Testing tab (prototype only) */}
+      {false && view === 4 && (
         <TestBar
           active={testActive}
           onStart={handleStartTest}
@@ -250,13 +251,8 @@ export default function App() {
           />
         )}
         {view === 3 && <WeeklySummary entries={entries} onOpenHistory={() => setView(2)} />}
-        {view === 4 && (
-          <Planner
-            planner={planner}
-            onAddEntry={add}
-            onRemovePlannerCheckIns={() => removeByNote('Planner check-in')}
-          />
-        )}
+        {/* DM26 Planner: routines and rituals (replaces the old workout planner) */}
+        {view === 4 && <Routines />}
       </Box>
 
       <Box component="footer" sx={{ py: 2, px: 2, textAlign: 'center', color: 'text.secondary', borderTop: 1, borderColor: 'divider', fontSize: { xs: '0.75rem', md: '0.7rem' }, whiteSpace: { lg: 'nowrap' } }}>

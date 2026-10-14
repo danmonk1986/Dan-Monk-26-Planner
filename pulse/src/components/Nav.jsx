@@ -108,8 +108,7 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
           >
             <Tab icon={<DashboardIcon />} iconPosition="start" label="Dashboard" value={0} id="nav-dashboard" />
             <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={3} id="nav-summary" />
-            <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="Workout Planner" value={4} id="nav-planner" />
-            <Tab icon={<BiotechIcon />} iconPosition="start" label="Testing" value={TESTING_VIEW} id="nav-testing" />
+            <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="DM26 Planner" value={4} id="nav-planner" />
           </Tabs>
         )}
       </Box>
@@ -130,8 +129,7 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
         >
           <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} value={0} id="nav-mobile-dashboard" />
           <BottomNavigationAction label="Summary" icon={<InsightsIcon />} value={3} id="nav-mobile-summary" />
-          <BottomNavigationAction label="Workouts" icon={<CalendarMonthIcon />} value={4} id="nav-mobile-planner" />
-          <BottomNavigationAction label="Testing" icon={<BiotechIcon />} value={TESTING_VIEW} id="nav-mobile-testing" />
+          <BottomNavigationAction label="DM26" icon={<CalendarMonthIcon />} value={4} id="nav-mobile-planner" />
         </BottomNavigation>
       )}
     </>
