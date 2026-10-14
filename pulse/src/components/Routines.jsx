@@ -15,7 +15,6 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CloseIcon from '@mui/icons-material/Close';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { tokens } from '../theme';
 import useMode from '../hooks/useMode';
 import { formatClock, shiftClock } from '../lib/shiftTime';
@@ -41,6 +40,7 @@ export default function Routines() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const update = (next) => { setList(next); saveRoutines(next); };
+  const openRoutine = list.find((r) => r.id === openId) || null;
 
   // MWD times flip on nights when I'm at MWD; everything else shows as entered
   const clock = (hhmm, place) => {
@@ -109,8 +109,8 @@ export default function Routines() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 2.5 }}>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <ToggleButtonGroup value={kind} exclusive onChange={(_, v) => { if (v) { setKind(v); setOpenId(null); } }} size="small" aria-label="Routines or rituals" id="routines-kind" sx={toggleSx}>
-            <ToggleButton value="routine" id="routines-kind-routine">Routines</ToggleButton>
-            <ToggleButton value="ritual" id="routines-kind-ritual">Rituals</ToggleButton>
+            <ToggleButton value="routine" id="routines-kind-routine" onClick={() => setOpenId(null)}>Routines</ToggleButton>
+            <ToggleButton value="ritual" id="routines-kind-ritual" onClick={() => setOpenId(null)}>Rituals</ToggleButton>
           </ToggleButtonGroup>
           <ToggleButtonGroup value={placeFilter} exclusive onChange={(_, v) => v && setPlaceFilter(v)} size="small" aria-label="Filter by HQ or MWD" id="routines-place" sx={toggleSx}>
             <ToggleButton value="all" id="routines-place-all">All</ToggleButton>
@@ -123,113 +123,107 @@ export default function Routines() {
         </Button>
       </Box>
 
-      {/* Tiles */}
-      {shown.length === 0 ? (
+      {/* One routine open: its own view, × to get back out */}
+      {openRoutine ? (() => {
+        const r = openRoutine;
+        return (
+          <Box
+            id={`routine-${r.id}`}
+            sx={{
+              borderRadius: '10px',
+              border: '2px solid',
+              borderColor: 'primary.light',
+              backgroundColor: 'rgba(20,20,28,0.82)',
+              backdropFilter: 'blur(6px)',
+              boxShadow: `0 0 24px rgba(${tokens.accentBrightRGB},0.15)`,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25 }}>
+              <Typography sx={{ ...heading, fontSize: '0.9rem', fontWeight: 700, color: 'primary.light', flex: 1 }}>
+                {r.name}
+              </Typography>
+              <IconButton onClick={() => setOpenId(null)} aria-label="Close" id="routine-close" sx={{ color: 'text.secondary', '&:hover': { color: 'primary.light' } }}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Box sx={{ px: 2, pb: 2, borderTop: `1px solid ${tokens.borderViolet}`, pt: 1.5 }}>
+              {r.description && (
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, whiteSpace: 'pre-line' }}>{r.description}</Typography>
+              )}
+
+              {sortedSteps(r).map((s) => (
+                <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.5, borderTop: `1px solid ${tokens.accentDim12}` }}>
+                  {r.kind === 'routine' && (
+                    <Typography sx={{ fontSize: '0.75rem', color: 'primary.light', minWidth: 64, fontFamily: '"Space Grotesk", sans-serif' }}>
+                      {s.time ? clock(s.time, r.place) : ''}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontSize: '0.875rem', flex: 1 }}>{s.label}</Typography>
+                  <IconButton size="small" onClick={() => removeStep(r, s.id)} aria-label={`Remove ${s.label}`} sx={{ color: 'text.secondary' }}>
+                    <CloseIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
+              ))}
+
+              {/* + add a step */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                {r.kind === 'routine' && (
+                  <TextField
+                    type="time"
+                    size="small"
+                    variant="standard"
+                    value={stepDraft.time}
+                    onChange={(e) => setStepDraft({ ...stepDraft, time: e.target.value })}
+                    inputProps={{ 'aria-label': 'Step time' }}
+                    sx={{ width: 110 }}
+                  />
+                )}
+                <TextField
+                  size="small"
+                  variant="standard"
+                  placeholder="Add a step"
+                  value={stepDraft.label}
+                  onChange={(e) => setStepDraft({ ...stepDraft, label: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === 'Enter') addStep(r); }}
+                  fullWidth
+                  inputProps={{ 'aria-label': 'Step name' }}
+                />
+                <IconButton onClick={() => addStep(r)} aria-label="Add step" id={`routine-add-step-${r.id}`}
+                  sx={{ color: 'primary.light', border: `1px solid ${tokens.borderViolet}`, width: 32, height: 32 }}>
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
+                <Button size="small" startIcon={<DeleteOutlineIcon />} onClick={() => setConfirmDelete(r)} sx={{ color: 'text.secondary' }}>Delete</Button>
+                <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEdit(r)}>Edit</Button>
+              </Box>
+            </Box>
+          </Box>
+        );
+      })() : shown.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 4, textAlign: 'center' }}>
           No {kind === 'routine' ? 'routines' : 'rituals'} here yet. Tap New to make one.
         </Typography>
       ) : (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-          {shown.map((r) => {
-            const open = openId === r.id;
-            const place = PLACES.find((p) => p.key === r.place)?.label || 'Both';
-            const when = r.kind === 'routine' && (r.start || r.end)
-              ? `${clock(r.start, r.place) || '…'} – ${clock(r.end, r.place) || '…'}` : null;
-            return (
-              <Box
-                key={r.id}
-                id={`routine-${r.id}`}
-                sx={{
-                  gridColumn: open ? '1 / -1' : 'auto',
-                  borderRadius: 3,
-                  border: '1px solid',
-                  borderColor: open ? tokens.accentBorder40 : tokens.borderViolet,
-                  backgroundColor: 'rgba(20,20,28,0.82)',
-                  backdropFilter: 'blur(6px)',
-                  boxShadow: open ? `0 0 24px rgba(${tokens.accentBrightRGB},0.15)` : 'none',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                  '&:hover': { borderColor: tokens.accentBorder40 },
-                }}
-              >
-                {/* Tile face: just the title (plus a small hint line) */}
-                <Box
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setOpenId(open ? null : r.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(open ? null : r.id); } }}
-                  aria-expanded={open}
-                  sx={{ p: 1.75, cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 1 }}
-                >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ ...heading, fontSize: '0.85rem', fontWeight: 700, color: open ? 'primary.light' : 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: open ? 'normal' : 'nowrap' }}>
-                      {r.name}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mt: 0.5 }}>
-                      {place}{when ? ` · ${when}` : ''}
-                    </Typography>
-                  </Box>
-                  <ExpandMoreIcon sx={{ fontSize: 18, color: 'text.secondary', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                </Box>
-
-                {/* Expanded: description, steps, + to add */}
-                {open && (
-                  <Box sx={{ px: 1.75, pb: 1.75, borderTop: `1px solid ${tokens.borderViolet}`, pt: 1.5 }}>
-                    {r.description && (
-                      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5, whiteSpace: 'pre-line' }}>{r.description}</Typography>
-                    )}
-
-                    {sortedSteps(r).map((s) => (
-                      <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.5, borderTop: `1px solid ${tokens.accentDim12}` }}>
-                        {r.kind === 'routine' && (
-                          <Typography sx={{ fontSize: '0.75rem', color: 'primary.light', minWidth: 64, fontFamily: '"Space Grotesk", sans-serif' }}>
-                            {s.time ? clock(s.time, r.place) : ''}
-                          </Typography>
-                        )}
-                        <Typography sx={{ fontSize: '0.875rem', flex: 1 }}>{s.label}</Typography>
-                        <IconButton size="small" onClick={() => removeStep(r, s.id)} aria-label={`Remove ${s.label}`} sx={{ color: 'text.secondary' }}>
-                          <CloseIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Box>
-                    ))}
-
-                    {/* + add a step */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                      {r.kind === 'routine' && (
-                        <TextField
-                          type="time"
-                          size="small"
-                          variant="standard"
-                          value={stepDraft.time}
-                          onChange={(e) => setStepDraft({ ...stepDraft, time: e.target.value })}
-                          inputProps={{ 'aria-label': 'Step time' }}
-                          sx={{ width: 110 }}
-                        />
-                      )}
-                      <TextField
-                        size="small"
-                        variant="standard"
-                        placeholder="Add a step"
-                        value={stepDraft.label}
-                        onChange={(e) => setStepDraft({ ...stepDraft, label: e.target.value })}
-                        onKeyDown={(e) => { if (e.key === 'Enter') addStep(r); }}
-                        fullWidth
-                        inputProps={{ 'aria-label': 'Step name' }}
-                      />
-                      <IconButton onClick={() => addStep(r)} aria-label="Add step" id={`routine-add-step-${r.id}`}
-                        sx={{ color: 'primary.light', border: `1px solid ${tokens.borderViolet}`, width: 32, height: 32 }}>
-                        <AddIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'flex-end' }}>
-                      <Button size="small" startIcon={<DeleteOutlineIcon />} onClick={() => setConfirmDelete(r)} sx={{ color: 'text.secondary' }}>Delete</Button>
-                      <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEdit(r)}>Edit</Button>
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-            );
-          })}
+        /* The list: each one is a button the same size as + New routine */
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }} id="routines-list">
+          {shown.map((r) => (
+            <Button
+              key={r.id}
+              variant="outlined"
+              onClick={() => setOpenId(r.id)}
+              id={`routine-tile-${r.id}`}
+              sx={{
+                border: '2px solid',
+                borderColor: 'primary.light',
+                color: 'primary.light',
+                '&:hover': { border: '2px solid', borderColor: 'primary.light', backgroundColor: tokens.accentDim12 },
+              }}
+            >
+              {r.name}
+            </Button>
+          ))}
         </Box>
       )}
 
