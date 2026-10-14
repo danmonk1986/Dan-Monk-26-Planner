@@ -10,6 +10,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import { tokens } from '../theme';
 import useMode from '../hooks/useMode';
 import { buildHistory, summarize, MODE_GROUPS, addDays } from '../data/baseline';
+import BackupCard from './BackupCard';
 
 const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' };
 const pct = (v) => (v == null ? '—' : `${Math.round(v * 100)}%`);
@@ -188,6 +189,8 @@ export default function WeeklySummary({ entries = [], onOpenHistory }) {
           </CardContent>
         </Card>
       )}
+
+      <BackupCard />
 
       {onOpenHistory && (
         <Button variant="outlined" startIcon={<HistoryIcon />} onClick={onOpenHistory} id="summary-history-button">
