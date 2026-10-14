@@ -14,6 +14,9 @@ import logo from '../assets/dan-monk-logo.png';
 import tagline from '../assets/tagline.png';
 import { tokens } from '../theme';
 import brand from '../brand';
+import Chip from '@mui/material/Chip';
+import useMode from '../hooks/useMode';
+import { modeLabel } from '../lib/shiftTime';
 
 const TESTING_VIEW = -1;
 
@@ -24,6 +27,7 @@ const TESTING_VIEW = -1;
  */
 export default function Nav({ view, onChangeView, onOpenTesting }) {
   const isMobile = useMediaQuery('(max-width:600px)');
+  const { mode } = useMode();
   // Log (1) and History (2) are reached from Dashboard / Summary, not the menu,
   // so nothing is highlighted while they're open.
   const tabValue = [0, 3, 4].includes(view) ? view : false;
@@ -86,6 +90,14 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
             />
           </Box>
         </Box>
+
+        {/* Current mode, visible on every screen */}
+        <Chip
+          label={modeLabel(mode)}
+          size="small"
+          id="header-mode-badge"
+          sx={{ ml: { xs: 1, sm: 2 }, mr: 'auto', fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600, letterSpacing: '0.08em', color: 'primary.light', border: `1px solid ${tokens.borderViolet}`, backgroundColor: tokens.accentDim08 }}
+        />
 
         {/* Desktop tabs */}
         {!isMobile && (

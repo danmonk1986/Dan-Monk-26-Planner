@@ -24,8 +24,11 @@ import MovedWorkoutDialog from './MovedWorkoutDialog';
 import { tokens } from '../theme';
 import QUOTES from '../data/quotes';
 import { LOG_TYPES } from '../data/logTypes';
+import useMode from '../hooks/useMode';
+import { dayAnchors } from '../lib/shiftTime';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import NightlightIcon from '@mui/icons-material/Nightlight';
 
-const GOALS_MODE_KEY = 'monk.dailyGoalsMode';
 const MY_QUOTES_KEY = 'monk.quotes';
 
 function loadMyQuotes() {
@@ -113,15 +116,10 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     setQuote(q);
     setNewText(''); setNewAuthor(''); setAddOpen(false);
   };
-  // Daily Goals mode: HQ or MWD (remembered on this device)
-  const [goalsMode, setGoalsMode] = useState(() => {
-    try { return localStorage.getItem(GOALS_MODE_KEY) || 'hq'; } catch { return 'hq'; }
-  });
-  const handleGoalsMode = (_, v) => {
-    if (!v) return;
-    setGoalsMode(v);
-    try { localStorage.setItem(GOALS_MODE_KEY, v); } catch { /* ignore */ }
-  };
+  // App-wide mode (HQ / MWD, days / nights)
+  const { mode, setMode } = useMode();
+  const anchors = dayAnchors(mode);
+
 
   const stepsToday = useMemo(() => entries
     .filter((e) => e.type === 'steps' && new Date(e.timestamp).toLocaleDateString('en-CA') === todayStr)
@@ -140,6 +138,9 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         </Typography>
         <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: '1.05rem', fontWeight: 600, letterSpacing: '0.08em', color: 'primary.light' }}>
           {clock.time}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ width: '100%', letterSpacing: '0.04em' }} id="mode-anchors">
+          {mode.place === 'mwd' ? `Shift ${mode.shift === 'nights' ? '6 PM – 6 AM' : '6 AM – 6 PM'} · ` : ''}Wake {anchors.wake} · Bed by {anchors.bed}
         </Typography>
       </Box>
 
@@ -226,18 +227,34 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <ToggleButtonGroup
-          value={goalsMode}
+          value={mode.place}
           exclusive
-          onChange={handleGoalsMode}
+          onChange={(_, v) => v && setMode({ place: v })}
           size="small"
-          aria-label="Daily goals mode"
-          id="daily-goals-mode"
+          aria-label="Where I am: HQ or MWD"
+          id="mode-place"
           sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 2, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
         >
           <ToggleButton value="hq" id="goals-mode-hq">HQ</ToggleButton>
           <ToggleButton value="mwd" id="goals-mode-mwd">MWD</ToggleButton>
         </ToggleButtonGroup>
+        {mode.place === 'mwd' && (
+          <ToggleButtonGroup
+            value={mode.shift}
+            exclusive
+            onChange={(_, v) => v && setMode({ shift: v })}
+            size="small"
+            aria-label="Shift: days or nights"
+            id="mode-shift"
+            sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 1.5, gap: 0.5, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+          >
+            <ToggleButton value="days" id="mode-shift-days"><WbSunnyIcon sx={{ fontSize: 16 }} />Days</ToggleButton>
+            <ToggleButton value="nights" id="mode-shift-nights"><NightlightIcon sx={{ fontSize: 16 }} />Nights</ToggleButton>
+          </ToggleButtonGroup>
+        )}
+        </Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {/* Placeholder: Daily Goals get fleshed out next */}
           <Button variant="outlined" size="small" startIcon={<FlagIcon />} id="daily-goals-button" sx={{ fontSize: '0.75rem' }}>
