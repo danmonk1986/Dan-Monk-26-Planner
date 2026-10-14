@@ -13,6 +13,7 @@ import InsightsIcon from '@mui/icons-material/Insights';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BiotechIcon from '@mui/icons-material/Biotech';
 import logo from '../assets/dan-monk-logo.png';
+import tagline from '../assets/tagline.png';
 import { tokens } from '../theme';
 import brand from '../brand';
 
@@ -61,18 +62,28 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
             alt="Dan Monk"
             sx={{ height: { xs: 40, sm: 48 }, width: 'auto', display: 'block' }}
           />
-          <Typography
-            variant="h5"
-            sx={{
-              fontSize: { xs: '1.1rem', sm: '1.3rem' },
-              fontWeight: 700,
-              background: `linear-gradient(135deg, ${tokens.violet} 0%, ${tokens.violetBright} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            {brand.name}
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontSize: { xs: '0.95rem', sm: '1.3rem' },
+                fontWeight: 700,
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                background: `linear-gradient(135deg, ${tokens.violet} 0%, ${tokens.violetBright} 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {brand.name}
+            </Typography>
+            <Box
+              component="img"
+              src={tagline}
+              alt="search. create. evolve."
+              sx={{ width: '100%', height: 'auto', display: 'block', mt: 0.5 }}
+            />
+          </Box>
         </Box>
 
         {/* Desktop tabs */}
