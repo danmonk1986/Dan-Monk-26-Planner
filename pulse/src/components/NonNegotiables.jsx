@@ -18,6 +18,7 @@ import { shiftClock, dayAnchors } from '../lib/shiftTime';
 import {
   SECTIONS, DEFAULT_ITEMS, loadItems, saveItems, loadTicks, saveTicks,
   routineDayKey, currentSection, itemsForDay, weeklyCount, titleCase,
+  AUTO_RULES, totalsByDay, isItemDone,
 } from '../data/nonNegotiables';
 
 const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' };
@@ -26,7 +27,7 @@ const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'upp
  * NON-NEGOTIABLES: the daily baseline, grouped by check-in.
  * Tap to tick. Ticks are saved per routine day. "Done, not on time."
  */
-export default function NonNegotiables() {
+export default function NonNegotiables({ entries = [] }) {
   const { mode } = useMode();
 
   // Re-evaluate the day and the current section every minute
@@ -46,7 +47,10 @@ export default function NonNegotiables() {
 
   const todays = useMemo(() => itemsForDay(items, day), [items, day]);
   const dayTicks = ticks[day] || {};
-  const done = todays.filter((i) => dayTicks[i.id]).length;
+  // Log entries that count toward auto-ticking items
+  const totals = useMemo(() => totalsByDay(entries, mode), [entries, mode]);
+  const isDone = (id) => isItemDone(id, day, ticks, totals);
+  const done = todays.filter((i) => isDone(i.id)).length;
 
   const updateItems = (next) => { setItems(next); saveItems(next); };
 
@@ -113,7 +117,7 @@ export default function NonNegotiables() {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
           {SECTIONS.map((s) => {
             const list = todays.filter((i) => i.section === s.key);
-            const sDone = list.filter((i) => dayTicks[i.id]).length;
+            const sDone = list.filter((i) => isDone(i.id)).length;
             const isNow = s.key === active;
             return (
               <Box
@@ -141,7 +145,10 @@ export default function NonNegotiables() {
 
                 {list.map((item) => {
                   const t = timeFor(item);
-                  const ticked = !!dayTicks[item.id];
+                  const ticked = isDone(item.id);
+                  const rule = AUTO_RULES[item.id];
+                  const logged = rule ? Math.round((totals[day]?.[rule.type] || 0) * 100) / 100 : 0;
+                  const autoDone = rule && logged >= rule.target;
                   return (
                     <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minHeight: 36 }}>
                       {editing ? (
@@ -165,7 +172,7 @@ export default function NonNegotiables() {
                         >
                           <Checkbox
                             checked={ticked}
-                            onChange={() => toggle(item.id)}
+                            onChange={() => !autoDone && toggle(item.id)}
                             size="small"
                             id={`nn-${item.id}`}
                             sx={{ p: 0.5, color: tokens.borderViolet, '&.Mui-checked': { color: 'primary.light' } }}
@@ -173,9 +180,14 @@ export default function NonNegotiables() {
                           <Typography sx={{ fontSize: '0.875rem', flex: 1, color: ticked ? 'text.secondary' : 'text.primary', textDecoration: ticked ? 'line-through' : 'none' }}>
                             {titleCase(item.label)}
                           </Typography>
+                          {rule && (
+                            <Typography sx={{ fontSize: '0.7rem', whiteSpace: 'nowrap', color: autoDone ? 'primary.light' : 'text.secondary' }} id={`nn-progress-${item.id}`}>
+                              {autoDone ? 'logged' : `${logged}/${rule.target} ${rule.unit}`}
+                            </Typography>
+                          )}
                           {item.weekly && (
                             <Typography sx={{ fontSize: '0.7rem', color: 'primary.light', whiteSpace: 'nowrap' }}>
-                              {weeklyCount(ticks, item.id, day)}/{item.weekly} wk
+                              {weeklyCount(ticks, item.id, day, totals)}/{item.weekly} wk
                             </Typography>
                           )}
                           {t && (

@@ -91,13 +91,42 @@ export function currentSection(mode, now = new Date()) {
 export const itemsForDay = (items, day) =>
   items.filter((i) => (!i.addedOn || i.addedOn <= day) && (!i.removedOn || day < i.removedOn));
 
-// Count ticks of one item over the 7 routine days ending on `day`
-export function weeklyCount(ticks, itemId, day) {
+/**
+ * Items that tick themselves from log entries.
+ * Productivity: 1 block logged that day. Activity: 30 min logged that day
+ * (steps don't count). The target comes from here, not the label.
+ */
+export const AUTO_RULES = {
+  productivity: { type: 'productivity', target: 1, unit: 'block' },
+  activity: { type: 'gym', target: 30, unit: 'min' },
+};
+
+// { 'YYYY-MM-DD': { productivity: 1.5, gym: 40 } } by routine day
+export function totalsByDay(entries, mode) {
+  const out = {};
+  const types = new Set(Object.values(AUTO_RULES).map((r) => r.type));
+  entries.forEach((e) => {
+    if (!types.has(e.type)) return;
+    const d = routineDayKey(mode, new Date(e.timestamp));
+    out[d] = out[d] || {};
+    out[d][e.type] = (out[d][e.type] || 0) + e.value;
+  });
+  return out;
+}
+
+// Done = ticked by hand, or the log met the target that day
+export function isItemDone(itemId, day, ticks, totals) {
+  if (ticks[day]?.[itemId]) return true;
+  const rule = AUTO_RULES[itemId];
+  return !!rule && (totals[day]?.[rule.type] || 0) >= rule.target;
+}
+
+// Days done for one item over the 7 routine days ending on `day`
+export function weeklyCount(ticks, itemId, day, totals = {}) {
   const [y, m, d] = day.split('-').map(Number);
   let count = 0;
   for (let k = 0; k < 7; k++) {
-    const dt = new Date(y, m - 1, d - k);
-    if (ticks[dateKey(dt)]?.[itemId]) count++;
+    if (isItemDone(itemId, dateKey(new Date(y, m - 1, d - k)), ticks, totals)) count++;
   }
   return count;
 }
