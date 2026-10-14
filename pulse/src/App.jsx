@@ -59,6 +59,10 @@ export default function App() {
     } else {
       add(entry);
     }
+    // Back to where the entry came from: edits -> History, new -> Dashboard
+    // (short delay so the form's "saved" confirmation is seen first)
+    const backTo = entry.id ? 2 : 0;
+    setTimeout(() => setView(backTo), 900);
     setEditEntry(null);
   }, [add, update]);
 
@@ -94,6 +98,7 @@ export default function App() {
 
   const handleCancelEdit = useCallback(() => {
     setEditEntry(null);
+    setView(2);
   }, []);
 
   // ── Testing dialog handlers ──────────────────────────────────
@@ -223,13 +228,20 @@ export default function App() {
           />
         )}
         {view === 2 && (
+          <Box sx={{ maxWidth: 640, mx: 'auto', px: 2, pt: 2 }}>
+            <Button size="small" startIcon={<ChevronLeftIcon />} onClick={() => setView(3)} id="history-back-button">
+              Back to Summary
+            </Button>
+          </Box>
+        )}
+        {view === 2 && (
           <History
             entries={entries}
             onEdit={handleEdit}
             onDelete={remove}
           />
         )}
-        {view === 3 && <WeeklySummary />}
+        {view === 3 && <WeeklySummary onOpenHistory={() => setView(2)} />}
         {view === 4 && (
           <Planner
             planner={planner}

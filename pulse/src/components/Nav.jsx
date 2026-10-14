@@ -7,8 +7,6 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import HistoryIcon from '@mui/icons-material/History';
 import InsightsIcon from '@mui/icons-material/Insights';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import BiotechIcon from '@mui/icons-material/Biotech';
@@ -26,6 +24,9 @@ const TESTING_VIEW = -1;
  */
 export default function Nav({ view, onChangeView, onOpenTesting }) {
   const isMobile = useMediaQuery('(max-width:600px)');
+  // Log (1) and History (2) are reached from Dashboard / Summary, not the menu,
+  // so nothing is highlighted while they're open.
+  const tabValue = [0, 3, 4].includes(view) ? view : false;
 
   const handleChange = (_, v) => {
     if (v === TESTING_VIEW) {
@@ -89,13 +90,11 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
         {/* Desktop tabs */}
         {!isMobile && (
           <Tabs
-            value={view}
+            value={tabValue}
             onChange={handleChange}
             aria-label="Main navigation"
           >
             <Tab icon={<DashboardIcon />} iconPosition="start" label="Dashboard" value={0} id="nav-dashboard" />
-            <Tab icon={<AddCircleOutlineIcon />} iconPosition="start" label="Log" value={1} id="nav-log" />
-            <Tab icon={<HistoryIcon />} iconPosition="start" label="History" value={2} id="nav-history" />
             <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={3} id="nav-summary" />
             <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="Workout Planner" value={4} id="nav-planner" />
             <Tab icon={<BiotechIcon />} iconPosition="start" label="Testing" value={TESTING_VIEW} id="nav-testing" />
@@ -106,7 +105,7 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
       {/* Mobile bottom navigation */}
       {isMobile && (
         <BottomNavigation
-          value={view}
+          value={tabValue}
           onChange={handleChange}
           showLabels
           sx={{
@@ -117,12 +116,10 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
             zIndex: 1100,
           }}
         >
-          <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} id="nav-mobile-dashboard" />
-          <BottomNavigationAction label="Log" icon={<AddCircleOutlineIcon />} id="nav-mobile-log" />
-          <BottomNavigationAction label="History" icon={<HistoryIcon />} id="nav-mobile-history" />
-          <BottomNavigationAction label="Summary" icon={<InsightsIcon />} id="nav-mobile-summary" />
-          <BottomNavigationAction label="Workouts" icon={<CalendarMonthIcon />} id="nav-mobile-planner" />
-          <BottomNavigationAction label="Testing" icon={<BiotechIcon />} id="nav-mobile-testing" />
+          <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} value={0} id="nav-mobile-dashboard" />
+          <BottomNavigationAction label="Summary" icon={<InsightsIcon />} value={3} id="nav-mobile-summary" />
+          <BottomNavigationAction label="Workouts" icon={<CalendarMonthIcon />} value={4} id="nav-mobile-planner" />
+          <BottomNavigationAction label="Testing" icon={<BiotechIcon />} value={TESTING_VIEW} id="nav-mobile-testing" />
         </BottomNavigation>
       )}
     </>

@@ -4,6 +4,8 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import HistoryIcon from '@mui/icons-material/History';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -181,7 +183,7 @@ const TREND_DISPLAY = {
   steady: { label: 'Steady with last week', icon: TrendingFlatIcon, color: tokens.violetBright },
 };
 
-export default function WeeklySummary() {
+export default function WeeklySummary({ onOpenHistory }) {
   const [stateKey, setStateKey] = useState(TEST_STATES[0].key);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -312,6 +314,18 @@ export default function WeeklySummary() {
           </Box>
         </CardContent>
       </Card>
+
+      {onOpenHistory && (
+        <Button
+          variant="outlined"
+          startIcon={<HistoryIcon />}
+          onClick={onOpenHistory}
+          id="summary-history-button"
+          sx={{ mt: 2 }}
+        >
+          View full history
+        </Button>
+      )}
 
       {/* Test-state switcher — click through the six situations */}
       <Box sx={{ mt: 4 }}>
