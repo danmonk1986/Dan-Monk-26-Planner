@@ -20,6 +20,7 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import MetricCard from './MetricCard';
+import NonNegotiables from './NonNegotiables';
 import MovedWorkoutDialog from './MovedWorkoutDialog';
 import { tokens } from '../theme';
 import QUOTES from '../data/quotes';
@@ -190,6 +191,9 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
           </Box>
         </Box>
       )}
+
+      {/* Daily baseline */}
+      <NonNegotiables />
 
       {/* Today's planned workout card */}
       {todayPlanned && (
