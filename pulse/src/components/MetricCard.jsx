@@ -16,8 +16,10 @@ import { LOG_TYPE_MAP } from '../data/logTypes';
  */
 // "L today · 2 glasses · 1 bottle"
 function waterLine(list) {
-  const glasses = list.filter((e) => e.value < 750).length;
-  const bottles = list.filter((e) => e.value >= 750).length;
+  const n = (e) => e.qty || 1;
+  const isBottle = (e) => (e.container ? e.container === 'bottle' : e.value / n(e) >= 750);
+  const glasses = list.filter((e) => !isBottle(e)).reduce((s, e) => s + n(e), 0);
+  const bottles = list.filter(isBottle).reduce((s, e) => s + n(e), 0);
   const parts = [];
   if (glasses) parts.push(`${glasses} glass${glasses > 1 ? 'es' : ''}`);
   if (bottles) parts.push(`${bottles} bottle${bottles > 1 ? 's' : ''}`);
@@ -88,6 +90,11 @@ export default function MetricCard({ type, todayTotal, trendData, onQuickAdd, ex
             ) : (
               todayEntries.slice(0, 5).map((e) => (
                 <Box key={e.id} sx={{ display: 'flex', gap: 1, alignItems: 'baseline', py: 0.4, borderTop: `1px solid ${tokens.accentDim12}` }}>
+                  {type === 'vices' && (e.qty || 1) > 1 && (
+                    <Typography sx={{ fontSize: '0.75rem', color: 'primary.light', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      ×{e.qty}
+                    </Typography>
+                  )}
                   {type !== 'vices' && (
                     <Typography sx={{ fontSize: '0.75rem', color: 'primary.light', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {e.value.toLocaleString()}

@@ -10,6 +10,8 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
 import CheckIcon from '@mui/icons-material/Check';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import WaterBottleIcon from '@mui/icons-material/WaterDrop';
 import CloseIcon from '@mui/icons-material/Close';
@@ -40,6 +42,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
   const [activityMode, setActivityMode] = useState('minutes');
   // H2O container
   const [waterSize, setWaterSize] = useState('glass');
+  // Repeats in one entry: 3 × 10 min, 5 × Glass, 2 × 1 block
+  const [qty, setQty] = useState(1);
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
   const [datetime, setDatetime] = useState('');
@@ -55,8 +59,11 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
         setType(editEntry.type);
         setActivityMode('minutes');
       }
-      if (editEntry.type === 'water') setWaterSize(editEntry.value >= 750 ? 'bottle' : 'glass');
-      setValue(String(editEntry.value));
+      const q = editEntry.qty && editEntry.qty > 1 ? editEntry.qty : 1;
+      setQty(q);
+      const each = editEntry.value / q;
+      if (editEntry.type === 'water') setWaterSize(editEntry.container || (each >= 750 ? 'bottle' : 'glass'));
+      setValue(String(Math.round(each * 100) / 100));
       setNote(editEntry.note || '');
       // Convert ISO to datetime-local format
       const d = new Date(editEntry.timestamp);
@@ -71,6 +78,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
 
   function resetForm() {
     setValue('');
+    setQty(1);
     setNote('');
     setSubmitted(false);
     // Default datetime to now in local timezone
@@ -89,6 +97,19 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
   const isSteps = type === 'gym' && activityMode === 'steps';
   const currentType = isSteps ? STEPS_TYPE : TYPES.find((t) => t.value === type);
 
+  // e.g. "= 30 min", "= 2.5 L", "= 3 blocks"
+  function qtySummary() {
+    if (qty <= 1) return '';
+    if (type === 'water') {
+      const ml = (WATER_SIZES.find((w) => w.key === waterSize) || WATER_SIZES[0]).ml;
+      return `= ${(ml * qty / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} L`;
+    }
+    if (type === 'vices') return `= ${qty}`;
+    const v = parseFloat(value);
+    if (isNaN(v)) return '';
+    return `= ${(Math.round(v * qty * 100) / 100).toLocaleString()} ${currentType.unit}`;
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
     let numValue = parseFloat(value);
@@ -99,9 +120,12 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
     }
     if (isNaN(numValue) || numValue <= 0) return;
 
+    const times = Math.max(1, Math.min(50, parseInt(qty, 10) || 1));
     const entry = {
       type: currentType.value,
-      value: numValue,
+      value: Math.round(numValue * times * 100) / 100,
+      qty: times,
+      ...(type === 'water' ? { container: waterSize } : {}),
       unit: currentType.unit,
       note: note.trim(),
       timestamp: new Date(datetime).toISOString(),
@@ -221,10 +245,29 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
             required
             fullWidth
             inputProps={{ min: 0, step: currentType.step }}
-            helperText={type === 'productivity' && value ? `= ${(parseFloat(value) * 1.5 || 0).toLocaleString()} hours` : undefined}
+            helperText={type === 'productivity' && value ? `= ${(parseFloat(value) * qty * 1.5 || 0).toLocaleString()} hours` : undefined}
             id="log-value-input"
           />
           )}
+
+          {/* Quantity: log repeats in one entry */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }} id="log-qty">
+            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 44 }}>Times</Typography>
+            <IconButton onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1} aria-label="Fewer" id="log-qty-minus"
+              sx={{ border: `1px solid ${tokens.borderViolet}`, borderRadius: '10px', width: 36, height: 36, color: 'primary.light' }}>
+              <RemoveIcon fontSize="small" />
+            </IconButton>
+            <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: '1.1rem', minWidth: 36, textAlign: 'center' }} id="log-qty-value">
+              × {qty}
+            </Typography>
+            <IconButton onClick={() => setQty((q) => Math.min(50, q + 1))} aria-label="More" id="log-qty-plus"
+              sx={{ border: `1px solid ${tokens.borderViolet}`, borderRadius: '10px', width: 36, height: 36, color: 'primary.light' }}>
+              <AddIcon fontSize="small" />
+            </IconButton>
+            <Typography variant="body2" sx={{ color: 'primary.light', ml: 'auto' }} id="log-qty-total">
+              {qtySummary()}
+            </Typography>
+          </Box>
 
           {/* Note input (most useful for food) */}
           <TextField
