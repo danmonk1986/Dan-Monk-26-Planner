@@ -14,7 +14,7 @@ import { LOG_TYPE_MAP } from '../data/logTypes';
 /**
  * Dashboard metric card: today's total, mini trend chart, and quick-add button.
  */
-export default function MetricCard({ type, todayTotal, trendData, onQuickAdd }) {
+export default function MetricCard({ type, todayTotal, trendData, onQuickAdd, extra = null }) {
   const config = LOG_TYPE_MAP[type];
   const Icon = config.icon;
 
@@ -62,7 +62,7 @@ export default function MetricCard({ type, todayTotal, trendData, onQuickAdd }) 
           {typeof todayTotal === 'number' ? todayTotal.toLocaleString() : '—'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          {config.unit} today
+          {config.unit} today{extra ? ` · ${extra}` : ''}
         </Typography>
 
         {/* Mini trend chart (last 7–14 days) */}

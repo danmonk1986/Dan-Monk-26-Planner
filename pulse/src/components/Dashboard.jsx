@@ -123,6 +123,10 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     try { localStorage.setItem(GOALS_MODE_KEY, v); } catch { /* ignore */ }
   };
 
+  const stepsToday = useMemo(() => entries
+    .filter((e) => e.type === 'steps' && new Date(e.timestamp).toLocaleDateString('en-CA') === todayStr)
+    .reduce((sum, e) => sum + e.value, 0), [entries, todayStr]);
+
   const isDone = todayPlanned?.done;
   const isMissed = todayPlanned?.status === 'missed';
   const isPending = todayPlanned?.status === 'pending' && !isDone;
@@ -267,7 +271,8 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {metrics.map((m) => (
           <Box key={m.type} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(33.333% - 11px)' } }}>
-            <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} onQuickAdd={() => onQuickAdd(m.type)} />
+            <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} onQuickAdd={() => onQuickAdd(m.type)}
+              extra={m.type === 'gym' && stepsToday > 0 ? `${stepsToday.toLocaleString()} steps` : null} />
           </Box>
         ))}
       </Box>

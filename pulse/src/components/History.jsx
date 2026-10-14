@@ -17,9 +17,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import TrendChart from './TrendChart';
 import { tokens } from '../theme';
-import { LOG_TYPES, isShownType } from '../data/logTypes';
+import { LOG_TYPES, LOG_TYPE_MAP, isShownType } from '../data/logTypes';
 
-const TYPE_ICONS = Object.fromEntries(LOG_TYPES.map((t) => [t.value, t.icon]));
+const TYPE_ICONS = Object.fromEntries(Object.values(LOG_TYPE_MAP).map((t) => [t.value, t.icon]));
 const TYPE_LABELS = Object.fromEntries(LOG_TYPES.map((t) => [t.value, t.label]));
 const TYPE_UNITS = Object.fromEntries(LOG_TYPES.map((t) => [t.value, t.unit]));
 
@@ -34,7 +34,7 @@ export default function History({ entries: allEntries, onEdit, onDelete }) {
 
   // Filter entries
   const filtered = useMemo(() => {
-    const list = filter === 'all' ? entries : entries.filter((e) => e.type === filter);
+    const list = filter === 'all' ? entries : entries.filter((e) => e.type === filter || LOG_TYPE_MAP[e.type]?.parent === filter);
     return [...list].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [entries, filter]);
 
@@ -165,7 +165,7 @@ export default function History({ entries: allEntries, onEdit, onDelete }) {
                         edge="end"
                         size="small"
                         onClick={() => onEdit(entry)}
-                        aria-label={`Edit ${TYPE_LABELS[entry.type]} entry`}
+                        aria-label={`Edit ${LOG_TYPE_MAP[entry.type]?.label} entry`}
                         sx={{ color: 'text.secondary', '&:hover': { color: 'primary.light' } }}
                       >
                         <EditIcon fontSize="small" />
@@ -174,7 +174,7 @@ export default function History({ entries: allEntries, onEdit, onDelete }) {
                         edge="end"
                         size="small"
                         onClick={() => onDelete(entry.id)}
-                        aria-label={`Delete ${TYPE_LABELS[entry.type]} entry`}
+                        aria-label={`Delete ${LOG_TYPE_MAP[entry.type]?.label} entry`}
                         sx={{ color: 'text.secondary', '&:hover': { color: '#ef4444' } }}
                       >
                         <DeleteIcon fontSize="small" />

@@ -11,7 +11,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
 import CheckIcon from '@mui/icons-material/Check';
 import { tokens } from '../theme';
-import { LOG_TYPES } from '../data/logTypes';
+import { LOG_TYPES, STEPS_TYPE } from '../data/logTypes';
 
 const TYPES = LOG_TYPES;
 
@@ -24,8 +24,10 @@ const WATER_PRESETS = [250, 350, 500, 750];
  *   editEntry   – if provided, the form pre-fills for editing
  *   onCancel    – called when editing is cancelled
  */
-export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
-  const [type, setType] = useState('food');
+export default function LogForm({ onSubmit, editEntry = null, onCancel, initialType = 'food' }) {
+  const [type, setType] = useState(initialType);
+  // Activity can be logged as minutes or steps
+  const [activityMode, setActivityMode] = useState('minutes');
   const [value, setValue] = useState('');
   const [note, setNote] = useState('');
   const [datetime, setDatetime] = useState('');
@@ -34,7 +36,13 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
   // Pre-fill for editing
   useEffect(() => {
     if (editEntry) {
-      setType(editEntry.type);
+      if (editEntry.type === 'steps') {
+        setType('gym');
+        setActivityMode('steps');
+      } else {
+        setType(editEntry.type);
+        setActivityMode('minutes');
+      }
       setValue(String(editEntry.value));
       setNote(editEntry.note || '');
       // Convert ISO to datetime-local format
@@ -65,7 +73,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
     if (!editEntry) resetForm();
   }, []);
 
-  const currentType = TYPES.find((t) => t.value === type);
+  const isSteps = type === 'gym' && activityMode === 'steps';
+  const currentType = isSteps ? STEPS_TYPE : TYPES.find((t) => t.value === type);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -73,7 +82,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
     if (isNaN(numValue) || numValue <= 0) return;
 
     const entry = {
-      type,
+      type: currentType.value,
       value: numValue,
       unit: currentType.unit,
       note: note.trim(),
@@ -90,7 +99,8 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
     // Show success briefly, then reset
     setTimeout(() => {
       resetForm();
-      setType('food');
+      setType(initialType);
+      setActivityMode('minutes');
     }, 1200);
   }
 
@@ -146,6 +156,22 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
             </ToggleButtonGroup>
           </Box>
 
+          {/* Activity: minutes or steps */}
+          {type === 'gym' && (
+            <ToggleButtonGroup
+              value={activityMode}
+              exclusive
+              onChange={(_, v) => { if (v) { setActivityMode(v); setValue(''); } }}
+              size="small"
+              aria-label="Activity measure"
+              id="activity-mode"
+              sx={{ alignSelf: 'flex-start', '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 2, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+            >
+              <ToggleButton value="minutes" id="activity-mode-minutes">Minutes</ToggleButton>
+              <ToggleButton value="steps" id="activity-mode-steps">Steps</ToggleButton>
+            </ToggleButtonGroup>
+          )}
+
           {/* Water quick presets */}
           {type === 'water' && (
             <Box>
@@ -178,6 +204,7 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel }) {
             required
             fullWidth
             inputProps={{ min: 0, step: currentType.step }}
+            helperText={type === 'productivity' && value ? `= ${(parseFloat(value) * 1.5 || 0).toLocaleString()} hours` : undefined}
             id="log-value-input"
           />
 

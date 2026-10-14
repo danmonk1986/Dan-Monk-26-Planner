@@ -66,8 +66,10 @@ export default function App() {
     setEditEntry(null);
   }, [add, update]);
 
-  const handleQuickAdd = useCallback(() => {
+  const [logType, setLogType] = useState('food');
+  const handleQuickAdd = useCallback((type) => {
     setEditEntry(null);
+    setLogType(type || 'food');
     setView(1);
   }, []);
 
@@ -222,6 +224,8 @@ export default function App() {
         )}
         {view === 1 && (
           <LogForm
+            key={editEntry ? editEntry.id : logType}
+            initialType={logType}
             onSubmit={handleLogSubmit}
             editEntry={editEntry}
             onCancel={editEntry ? handleCancelEdit : undefined}
