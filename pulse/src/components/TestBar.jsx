@@ -31,7 +31,7 @@ const toggleSx = {
  * Testing strip shown on the Dashboard and Workout Planner while a demo
  * date is active. Prototype-only: remove together with the Testing tab.
  */
-export default function TestBar({ dateLabel, onPrevDay, onNextDay, group, onGroupChange, onOpenTesting }) {
+export default function TestBar({ dateLabel, onPrevDay, onNextDay, group, onGroupChange, onOpenTesting, test, testIndex, testCount, onPrevTest, onNextTest, onSetupTest }) {
   return (
     <Box
       id="test-bar"
@@ -85,6 +85,43 @@ export default function TestBar({ dateLabel, onPrevDay, onNextDay, group, onGrou
       >
         More
       </Button>
+
+      {test && (
+        <Box
+          id="test-bar-script"
+          sx={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.35)', pt: 1.25, display: 'flex', flexDirection: 'column', gap: 0.75 }}
+        >
+          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.12em', color: ON_ACCENT }}>
+            Test {testIndex + 1} of {testCount} · {test.id !== 'FIXED' ? `${test.id} ` : ''}{test.name}
+          </Typography>
+          <Typography sx={{ fontSize: '0.85rem', color: ON_ACCENT, lineHeight: 1.45 }}>
+            <Box component="span" sx={{ fontWeight: 700 }}>Do: </Box>{test.doText}
+          </Typography>
+          <Typography sx={{ fontSize: '0.85rem', color: ON_ACCENT, lineHeight: 1.45 }}>
+            <Box component="span" sx={{ fontWeight: 700 }}>Expect: </Box>{test.expect}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={onSetupTest}
+              id="test-bar-setup"
+              sx={{ fontSize: '0.72rem', fontWeight: 700, backgroundColor: ON_ACCENT, color: tokens.violet, '&:hover': { backgroundColor: 'rgba(255,255,255,0.85)' } }}
+            >
+              Set up test {testIndex + 1}
+            </Button>
+            <Box sx={{ flex: 1 }} />
+            <Button size="small" startIcon={<ChevronLeftIcon />} onClick={onPrevTest} disabled={testIndex === 0} id="test-bar-prev-test"
+              sx={{ fontSize: '0.72rem', fontWeight: 700, color: ON_ACCENT, '&.Mui-disabled': { color: 'rgba(255,255,255,0.4)' } }}>
+              Prev
+            </Button>
+            <Button size="small" endIcon={<ChevronRightIcon />} onClick={onNextTest} disabled={testIndex === testCount - 1} id="test-bar-next-test"
+              sx={{ fontSize: '0.72rem', fontWeight: 700, color: ON_ACCENT, '&.Mui-disabled': { color: 'rgba(255,255,255,0.4)' } }}>
+              Next test
+            </Button>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

@@ -1,0 +1,108 @@
+/**
+ * Guided test script for the Workout Planner prototype (prototype only).
+ * Each test loads a ready-made week (Mon Oct 19 – Sun Oct 25, 2026), then the
+ * tester does one action and compares the screen with "expect".
+ * Workouts: A = Full-body strength, B = Full-body circuit, C = Full-body and core.
+ */
+const TESTS = [
+  {
+    id: 'T1',
+    name: 'Midweek miss',
+    group: 'adaptive',
+    target: 3,
+    days: ['Monday', 'Wednesday', 'Friday', 'Saturday', 'Sunday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-21': 'workout-b', '2026-10-23': 'workout-c' },
+    checkIns: ['2026-10-19'],
+    today: '2026-10-21',
+    doText: "It's Wednesday and Monday is done. Skip today's workout: tap ▶ once to move to Thursday.",
+    expect: "Wednesday shows Missed and a pop-up says Full-body circuit moved from Wed to Sat. Tap Keep Saturday.",
+  },
+  {
+    id: 'T2',
+    name: 'No room left',
+    group: 'adaptive',
+    target: 3,
+    days: ['Monday', 'Wednesday', 'Friday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-21': 'workout-b', '2026-10-23': 'workout-c' },
+    checkIns: ['2026-10-19', '2026-10-21'],
+    today: '2026-10-23',
+    doText: "It's Friday; Monday and Wednesday are done. Skip Friday: tap ▶ once to move to Saturday.",
+    expect: 'Friday shows Missed, no pop-up, the message says no available days are left, the counter reads 2/3 done · 1 missed, and nothing is added to Sat or Sun.',
+  },
+  {
+    id: 'T3',
+    name: 'Double check-in',
+    group: 'adaptive',
+    target: 3,
+    days: ['Monday', 'Wednesday', 'Friday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-21': 'workout-b', '2026-10-23': 'workout-c' },
+    checkIns: ['2026-10-19', '2026-10-19'],
+    today: '2026-10-19',
+    doText: 'This test loads two gym check-ins on Monday. Just look at Monday and the counter.',
+    expect: 'Monday shows Done (no Check in button) and the counter reads 1/3 done, not 2.',
+  },
+  {
+    id: 'T4',
+    name: 'Availability change',
+    group: 'adaptive',
+    target: 3,
+    days: ['Monday', 'Wednesday', 'Friday', 'Saturday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-21': 'workout-b', '2026-10-23': 'workout-c' },
+    checkIns: [],
+    today: '2026-10-19',
+    doText: 'Tap Edit availability, untick Fri, and save.',
+    expect: 'Full-body and core moves to Saturday with a small "From" label, no pop-up appears, Friday shows Off day, and the counter reads 0/3.',
+  },
+  {
+    id: 'T5',
+    name: 'Early finish',
+    group: 'adaptive',
+    target: 3,
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-20': 'workout-b', '2026-10-21': 'workout-c' },
+    checkIns: ['2026-10-19', '2026-10-20'],
+    today: '2026-10-21',
+    doText: "It's Wednesday; Monday and Tuesday are done. Tap Check in on Wednesday, then tap ▶ to Thursday.",
+    expect: 'The message says all your workouts are done this week, the counter reads 3/3, and Thursday stays Open (nothing extra is added).',
+  },
+  {
+    id: 'T6',
+    name: 'Sunday miss',
+    group: 'adaptive',
+    target: 3,
+    days: ['Friday', 'Saturday', 'Sunday'],
+    plan: { '2026-10-23': 'workout-a', '2026-10-24': 'workout-b', '2026-10-25': 'workout-c' },
+    checkIns: ['2026-10-23', '2026-10-24'],
+    today: '2026-10-25',
+    doText: "It's Sunday; Friday and Saturday are done. Skip Sunday: tap ▶ once to move to Monday, Oct 26.",
+    expect: "The new week starts fresh (A, B, C on Fri, Sat, Sun) with no pop-up. Tap the planner's ◀ week arrow: last Sunday shows Missed and nothing carried over.",
+  },
+  {
+    id: 'T7',
+    name: 'Pick a different day',
+    group: 'adaptive',
+    target: 3,
+    days: ['Monday', 'Wednesday', 'Friday', 'Saturday', 'Sunday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-21': 'workout-b', '2026-10-23': 'workout-c' },
+    checkIns: ['2026-10-19'],
+    today: '2026-10-22',
+    doText: "It's Thursday and Wednesday was missed, so the rescheduled pop-up opens. Tap Pick another day.",
+    expect: 'Only Sunday is offered (no past or unavailable days). Pick it: Full-body circuit lands on Sunday and Saturday is Open again.',
+  },
+  {
+    id: 'FIXED',
+    name: 'Fixed group (comparison)',
+    group: 'fixed',
+    target: 3,
+    days: ['Monday', 'Wednesday', 'Friday', 'Saturday', 'Sunday'],
+    plan: { '2026-10-19': 'workout-a', '2026-10-21': 'workout-b', '2026-10-23': 'workout-c' },
+    checkIns: ['2026-10-19'],
+    today: '2026-10-21',
+    doText: 'Same week as Test 1, but in the Fixed group. Tap ▶ once to move to Thursday.',
+    expect: 'Wednesday shows Missed, nothing moves, no pop-up, and the message says every week is a fresh start.',
+  },
+];
+
+export const TEST_WEEK_START = '2026-10-19';
+export const TEST_WEEK_END = '2026-11-01';
+export default TESTS;

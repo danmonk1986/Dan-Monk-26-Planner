@@ -359,6 +359,29 @@ export default function usePlanner(entries) {
     writeState({}, [], { ...DEFAULT_SETTINGS, demo_today: dateStr });
   }, [writeState]);
 
+  /** Load a guided test scenario (prototype only) in one write. */
+  const loadScenario = useCallback((test) => {
+    const avail = {};
+    DAYS_OF_WEEK.forEach((d) => { avail[d] = test.days.includes(d); });
+    const sched = Object.entries(test.plan).map(([date, workoutId]) => ({
+      id: uuidv4(),
+      scheduled_date: date,
+      workout_id: workoutId,
+      status: 'pending',
+      is_moved: false,
+      moved_from_date: null,
+      moved_accepted: null,
+    }));
+    setActiveMessage(null);
+    writeState(avail, sched, {
+      ...DEFAULT_SETTINGS,
+      setup_complete: true,
+      weekly_target: test.target,
+      group_assignment: test.group,
+      demo_today: test.today,
+    });
+  }, [writeState]);
+
   // ── Auto-reschedule: single sync-then-detect pass ────────────
   useEffect(() => {
     if (!loaded || !settings.setup_complete) return;
@@ -523,5 +546,6 @@ export default function usePlanner(entries) {
     setDemoToday,
     resetPlanner,
     launchTest,
+    loadScenario,
   };
 }
