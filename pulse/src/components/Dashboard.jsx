@@ -1,17 +1,34 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import MetricCard from './MetricCard';
 import MovedWorkoutDialog from './MovedWorkoutDialog';
 import { tokens } from '../theme';
+import QUOTES from '../data/quotes';
+
+const GOALS_MODE_KEY = 'monk.dailyGoalsMode';
+
+// Live date + time in Mountain Time (Calgary), refreshed every 15 seconds.
+function useMountainClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 15000);
+    return () => clearInterval(id);
+  }, []);
+  const tz = 'America/Edmonton';
+  const date = now.toLocaleDateString('en-CA', { timeZone: tz, weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const time = now.toLocaleTimeString('en-CA', { timeZone: tz, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+  return { date, time };
+}
 
 const METRIC_TYPES = ['food', 'steps', 'water', 'sleep', 'gym'];
 
@@ -52,20 +69,38 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     });
   }, [entries, todayStr, demoToday]);
 
+  const clock = useMountainClock();
+  // One random quote per Dashboard visit
+  const [quote] = useState(() => (QUOTES.length ? QUOTES[Math.floor(Math.random() * QUOTES.length)] : null));
+  // Daily Goals mode: HQ or MWD (remembered on this device)
+  const [goalsMode, setGoalsMode] = useState(() => {
+    try { return localStorage.getItem(GOALS_MODE_KEY) || 'hq'; } catch { return 'hq'; }
+  });
+  const handleGoalsMode = (_, v) => {
+    if (!v) return;
+    setGoalsMode(v);
+    try { localStorage.setItem(GOALS_MODE_KEY, v); } catch { /* ignore */ }
+  };
+
   const isDone = todayPlanned?.done;
   const isMissed = todayPlanned?.status === 'missed';
   const isPending = todayPlanned?.status === 'pending' && !isDone;
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: 2, py: 3 }}>
-      {/* Welcome message */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontSize: '1.2rem', mb: 0.5 }}>
-          Welcome back
+      {/* Date + time (Mountain Time) and a random quote */}
+      <Box sx={{ mb: 3 }} id="dashboard-clock">
+        <Typography variant="h5" sx={{ fontSize: '1.2rem', mb: 0.25 }}>
+          {clock.date}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-          Here's your wellness snapshot for today. Log a meal, a walk, some water, or last night's sleep to keep your streak going.
+        <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.95rem', letterSpacing: '0.08em', color: 'primary.light' }}>
+          {clock.time}
         </Typography>
+        {quote && (
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5, mt: 1.5, fontStyle: 'italic' }} id="dashboard-quote">
+            "{quote.text}"{quote.author ? ` — ${quote.author}` : ''}
+          </Typography>
+        )}
       </Box>
 
       {/* Today's planned workout card */}
@@ -104,15 +139,19 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h5" sx={{ fontSize: '1.2rem' }}>Today</Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button variant="outlined" size="small" startIcon={<FitnessCenterIcon />} onClick={onQuickGym} id="quick-gym-button" sx={{ fontSize: '0.75rem' }}>
-            Gym check-in
-          </Button>
-          <Button variant="outlined" size="small" startIcon={<WaterDropIcon />} onClick={onQuickWater} id="quick-water-button" sx={{ fontSize: '0.75rem' }}>
-            +250 ml
-          </Button>
-        </Box>
+        <Typography variant="h5" sx={{ fontSize: '1.2rem' }}>Daily Goals</Typography>
+        <ToggleButtonGroup
+          value={goalsMode}
+          exclusive
+          onChange={handleGoalsMode}
+          size="small"
+          aria-label="Daily goals mode"
+          id="daily-goals-mode"
+          sx={{ '& .MuiToggleButton-root': { fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', letterSpacing: '0.08em', px: 2, '&.Mui-selected': { backgroundColor: tokens.accentDim15, color: tokens.violetBright } } }}
+        >
+          <ToggleButton value="hq" id="goals-mode-hq">HQ</ToggleButton>
+          <ToggleButton value="mwd" id="goals-mode-mwd">MWD</ToggleButton>
+        </ToggleButtonGroup>
       </Box>
 
       {/* Metric cards */}
