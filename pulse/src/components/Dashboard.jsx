@@ -141,8 +141,8 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       {/* Quote: centered block, text left-aligned, author on the right */}
       {quote && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }} id="dashboard-quote">
-          <Box sx={{ maxWidth: 560, fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif', color: 'primary.main' }}>
-            <Typography component="p" sx={{ fontFamily: 'inherit', color: 'inherit', fontSize: { xs: '1.1rem', sm: '1.35rem' }, fontWeight: 700, lineHeight: 1.35, whiteSpace: 'pre-line', textAlign: 'left' }}>
+          <Box sx={{ maxWidth: 560, fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif', color: tokens.surfaceRaised }}>
+            <Typography component="p" sx={{ fontFamily: 'inherit', color: 'inherit', fontSize: { xs: '1.1rem', sm: '1.35rem' }, fontWeight: 700, lineHeight: 1.35, whiteSpace: 'pre-line', textAlign: 'center' }}>
               “{quote.text}”
             </Typography>
             {quote.author && (
@@ -208,11 +208,11 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
             Daily Goals
           </Button>
           <ButtonGroup variant="outlined" size="small" aria-label="Inspiration">
-            <Button startIcon={<ShuffleIcon />} onClick={handleShuffle} disabled={allQuotes.length < 2} id="inspiration-shuffle-button" sx={{ fontSize: '0.75rem' }}>
+            <Button startIcon={<AddIcon />} onClick={() => setAddOpen(true)} id="inspiration-add-button" sx={{ fontSize: '0.75rem' }}>
               Inspiration
             </Button>
-            <Button onClick={() => setAddOpen(true)} aria-label="Add a quote" id="inspiration-add-button">
-              <AddIcon fontSize="small" />
+            <Button onClick={handleShuffle} disabled={allQuotes.length < 2} aria-label="Shuffle quote" id="inspiration-shuffle-button">
+              <ShuffleIcon fontSize="small" />
             </Button>
           </ButtonGroup>
         </Box>

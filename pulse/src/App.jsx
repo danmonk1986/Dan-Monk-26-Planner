@@ -251,9 +251,9 @@ export default function App() {
         )}
       </Box>
 
-      <Box component="footer" sx={{ py: 2, px: 3, textAlign: 'center', color: 'text.secondary', borderTop: 1, borderColor: 'divider', fontSize: '0.85rem' }}>
+      <Box component="footer" sx={{ py: 2, px: 2, textAlign: 'center', color: 'text.secondary', borderTop: 1, borderColor: 'divider', fontSize: { xs: '0.75rem', md: '0.7rem' }, whiteSpace: { lg: 'nowrap' } }}>
         {brand.title
-          ? `${brand.title} is a reimagining of the Pulse example app from the book Practical Product Management in the Age of AI by Guinevere Orvis. Original materials © 2026 Guinevere Orvis, used for personal learning.`
+          ? `${brand.title}, reimagined from the Pulse app in Practical Product Management in the Age of AI by Guinevere Orvis. © 2026 Guinevere Orvis.`
           : `${brand.name} example app for the book Practical Product Management by Guinevere Orvis.`}{' '}
         <Box component="a" href="https://github.com/gorvis/book-pm-management/blob/main/LICENSE" target="_blank" rel="noreferrer" sx={{ color: 'inherit', textDecoration: 'underline' }}>
           Read license.
