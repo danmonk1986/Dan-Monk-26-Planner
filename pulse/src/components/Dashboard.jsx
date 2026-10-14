@@ -15,6 +15,10 @@ import TextField from '@mui/material/TextField';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import AddIcon from '@mui/icons-material/Add';
 import FlagIcon from '@mui/icons-material/Flag';
+import GridViewIcon from '@mui/icons-material/GridView';
+import ChecklistIcon from '@mui/icons-material/Checklist';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -117,6 +121,16 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
     setQuote(q);
     setNewText(''); setNewAuthor(''); setAddOpen(false);
   };
+  // Dashboard view: Non-Negotiables or the log cards (remembered on this device)
+  const [dashView, setDashView] = useState(() => {
+    try { return localStorage.getItem('monk.dashView') === 'log' ? 'log' : 'nn'; } catch { return 'nn'; }
+  });
+  const toggleView = () => {
+    const next = dashView === 'nn' ? 'log' : 'nn';
+    setDashView(next);
+    try { localStorage.setItem('monk.dashView', next); } catch { /* ignore */ }
+  };
+
   // App-wide mode (HQ / MWD, days / nights)
   const { mode, setMode } = useMode();
   const anchors = dayAnchors(mode);
@@ -193,7 +207,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       )}
 
       {/* Where I am: HQ / MWD (days / nights) */}
-      <Box sx={{ mb: 2 }} id="mode-switch">
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }} id="mode-switch">
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <ToggleButtonGroup
             value={mode.place}
@@ -222,10 +236,35 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
             </ToggleButtonGroup>
           )}
         </Box>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Flip between the Non-Negotiables and the log cards */}
+          <Tooltip title={dashView === 'nn' ? 'Show log' : 'Show Non-Negotiables'}>
+            <IconButton
+              onClick={toggleView}
+              aria-label={dashView === 'nn' ? 'Show log' : 'Show Non-Negotiables'}
+              id="dashboard-view-toggle"
+              sx={{ color: 'primary.light', border: `1px solid ${tokens.borderViolet}`, borderRadius: '10px', width: 34, height: 34, '&:hover': { backgroundColor: tokens.accentDim12, borderColor: 'primary.main' } }}
+            >
+              {dashView === 'nn' ? <GridViewIcon fontSize="small" /> : <ChecklistIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          {/* Placeholder: Daily Goals get fleshed out next */}
+          <Button variant="outlined" size="small" startIcon={<FlagIcon />} id="daily-goals-button" sx={{ fontSize: '0.75rem' }}>
+            Daily Goals
+          </Button>
+          <ButtonGroup variant="outlined" size="small" aria-label="Inspiration">
+            <Button startIcon={<AddIcon />} onClick={() => setAddOpen(true)} id="inspiration-add-button" sx={{ fontSize: '0.75rem' }}>
+              Inspiration
+            </Button>
+            <Button onClick={handleShuffle} disabled={allQuotes.length < 2} aria-label="Shuffle quote" id="inspiration-shuffle-button">
+              <ShuffleIcon fontSize="small" />
+            </Button>
+          </ButtonGroup>
+        </Box>
       </Box>
 
-      {/* Daily baseline */}
-      <NonNegotiables />
+      {/* Daily baseline (or the log cards, via the view toggle) */}
+      {dashView === 'nn' && <NonNegotiables />}
 
       {/* Today's planned workout card */}
       {todayPlanned && (
@@ -262,23 +301,6 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         </Card>
       )}
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 3, flexWrap: 'wrap', gap: 1 }}>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {/* Placeholder: Daily Goals get fleshed out next */}
-          <Button variant="outlined" size="small" startIcon={<FlagIcon />} id="daily-goals-button" sx={{ fontSize: '0.75rem' }}>
-            Daily Goals
-          </Button>
-          <ButtonGroup variant="outlined" size="small" aria-label="Inspiration">
-            <Button startIcon={<AddIcon />} onClick={() => setAddOpen(true)} id="inspiration-add-button" sx={{ fontSize: '0.75rem' }}>
-              Inspiration
-            </Button>
-            <Button onClick={handleShuffle} disabled={allQuotes.length < 2} aria-label="Shuffle quote" id="inspiration-shuffle-button">
-              <ShuffleIcon fontSize="small" />
-            </Button>
-          </ButtonGroup>
-        </Box>
-      </Box>
-
       {/* Add a quote */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontSize: '1rem' }}>Add a quote</DialogTitle>
@@ -292,8 +314,9 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         </DialogActions>
       </Dialog>
 
-      {/* Metric cards */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+      {/* Metric cards (log view) */}
+      {dashView === 'log' && (
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }} id="dashboard-log-view">
         {metrics.map((m) => (
           <Box key={m.type} sx={{ flex: { xs: '1 1 calc(50% - 8px)', sm: '1 1 calc(33.333% - 11px)', md: '1 1 calc(33.333% - 11px)' } }}>
             <MetricCard type={m.type} todayTotal={m.todayTotal} trendData={m.trendData} onQuickAdd={() => onQuickAdd(m.type)}
@@ -301,6 +324,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
           </Box>
         ))}
       </Box>
+      )}
 
       <MovedWorkoutDialog planner={planner} />
     </Box>
