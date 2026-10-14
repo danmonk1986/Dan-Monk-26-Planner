@@ -81,7 +81,7 @@ export default function Nav({ view, onChangeView, onOpenTesting }) {
               component="img"
               src={tagline}
               alt="search. create. evolve."
-              sx={{ width: '100%', height: 'auto', display: 'block', mt: 0.5 }}
+              sx={{ width: 0, minWidth: '100%', height: 'auto', display: 'block', mt: 0.5 }}
             />
           </Box>
         </Box>
