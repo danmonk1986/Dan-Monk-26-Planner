@@ -49,6 +49,7 @@ export default function App() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [testIndex, setTestIndex] = useState(0);
+  const [testActive, setTestActive] = useState(false);
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleLogSubmit = useCallback((entry) => {
@@ -129,8 +130,9 @@ export default function App() {
   }, [planner, removeByNote, removeGymBetween, closeTesting]);
 
   // Guided test script (prototype only): load a ready-made week for one test.
-  const handleSetupTest = useCallback(() => {
-    const test = TESTS[testIndex];
+  const setupTest = useCallback((index) => {
+    const test = TESTS[index];
+    setTestIndex(index);
     removeByNote('Planner check-in');
     removeGymBetween(TEST_WEEK_START, TEST_WEEK_END);
     test.checkIns.forEach((d, i) => {
@@ -144,7 +146,12 @@ export default function App() {
     });
     planner.loadScenario(test);
     setView(4);
-  }, [testIndex, removeByNote, removeGymBetween, add, planner]);
+  }, [removeByNote, removeGymBetween, add, planner]);
+
+  const handleStartTest = useCallback(() => {
+    setTestActive(true);
+    setupTest(0);
+  }, [setupTest]);
 
   const demoToday = planner.demoToday;
   const groupAssignment = planner.settings?.group_assignment || 'adaptive';
@@ -173,21 +180,24 @@ export default function App() {
     >
       <Nav view={view} onChangeView={setView} onOpenTesting={() => { setView(4); setTestingOpen(true); }} />
 
-      {/* Testing strip (prototype only): shown on Dashboard and Workout Planner while a demo date is active */}
-      {demoToday && (view === 0 || view === 4) && (
+      {/* Testing strip (prototype only): Workout Planner page */}
+      {view === 4 && (
         <TestBar
+          active={testActive}
+          onStart={handleStartTest}
+          onEnd={() => setTestActive(false)}
+          onReset={() => { handleResetPlanner(); setTestActive(false); }}
           dateLabel={todayLabel}
           onPrevDay={() => shiftDemoDate(-1)}
           onNextDay={() => shiftDemoDate(1)}
           group={groupAssignment}
           onGroupChange={handleGroupChange}
-          onOpenTesting={() => setTestingOpen(true)}
           test={TESTS[testIndex]}
           testIndex={testIndex}
           testCount={TESTS.length}
-          onPrevTest={() => setTestIndex((i) => Math.max(0, i - 1))}
-          onNextTest={() => setTestIndex((i) => Math.min(TESTS.length - 1, i + 1))}
-          onSetupTest={handleSetupTest}
+          onPrevTest={() => setupTest(Math.max(0, testIndex - 1))}
+          onNextTest={() => setupTest(Math.min(TESTS.length - 1, testIndex + 1))}
+          onRedoTest={() => setupTest(testIndex)}
         />
       )}
 
@@ -249,7 +259,7 @@ export default function App() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {/* Intro */}
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', lineHeight: 1.5 }}>
-            How to test: use the red Testing bar above the Workout Planner. For each test, tap Set up test, do the one step under Do, and compare the screen with Expect. Launch test starts a blank week if you'd rather explore freely. These tools are for testing only and are not part of the student app.
+            How to test: go to the Workout Planner and tap Start test on the red Testing bar. Each test loads its own week: do the one step under Do, compare the screen with Expect, then tap Next test. Launch test below starts a blank week if you'd rather explore freely. These tools are for testing only and are not part of the student app.
           </Typography>
 
           {/* Launch test — step one */}
