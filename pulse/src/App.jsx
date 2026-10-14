@@ -67,9 +67,11 @@ export default function App() {
   }, [add, update]);
 
   const [logType, setLogType] = useState('food');
-  const handleQuickAdd = useCallback((type) => {
+  const [logPrefill, setLogPrefill] = useState(null); // e.g. { value: '10', qty: 3 }
+  const handleQuickAdd = useCallback((type, prefill = null) => {
     setEditEntry(null);
     setLogType(type || 'food');
+    setLogPrefill(prefill);
     setView(1);
   }, []);
 
@@ -224,8 +226,9 @@ export default function App() {
         )}
         {view === 1 && (
           <LogForm
-            key={editEntry ? editEntry.id : logType}
+            key={editEntry ? editEntry.id : `${logType}-${logPrefill ? 'prefill' : 'blank'}`}
             initialType={logType}
+            prefill={logPrefill}
             onSubmit={handleLogSubmit}
             editEntry={editEntry}
             onCancel={editEntry ? handleCancelEdit : undefined}

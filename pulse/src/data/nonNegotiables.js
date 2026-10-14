@@ -114,12 +114,19 @@ export function totalsByDay(entries, mode) {
   return out;
 }
 
-// Done = ticked by hand, or the log met the target that day
+// Done = the log met the target (loggable items: the log is the only proof),
+// or ticked by hand (everything else)
 export function isItemDone(itemId, day, ticks, totals) {
-  if (ticks[day]?.[itemId]) return true;
   const rule = AUTO_RULES[itemId];
-  return !!rule && (totals[day]?.[rule.type] || 0) >= rule.target;
+  if (rule) return (totals[day]?.[rule.type] || 0) >= rule.target;
+  return !!ticks[day]?.[itemId];
 }
+
+// One-tap log for loggable items: Productivity 1 block, Activity 10 min × 3
+export const LOG_PREFILL = {
+  productivity: { type: 'productivity', value: '1', qty: 1 },
+  activity: { type: 'gym', value: '10', qty: 3 },
+};
 
 // Days done for one item over the 7 routine days ending on `day`
 export function weeklyCount(ticks, itemId, day, totals = {}) {

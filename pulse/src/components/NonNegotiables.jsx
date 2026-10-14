@@ -18,7 +18,7 @@ import { shiftClock, dayAnchors } from '../lib/shiftTime';
 import {
   SECTIONS, DEFAULT_ITEMS, loadItems, saveItems, loadTicks, saveTicks,
   routineDayKey, currentSection, itemsForDay, weeklyCount, titleCase,
-  AUTO_RULES, totalsByDay, isItemDone,
+  AUTO_RULES, totalsByDay, isItemDone, LOG_PREFILL,
 } from '../data/nonNegotiables';
 import {
   BASELINE_PCT, loadTolerance, saveTolerance, recordDayMode, vicesByDay, firstDay, dayStatus, curve, addDays,
@@ -30,7 +30,7 @@ const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'upp
  * NON-NEGOTIABLES: the daily baseline, grouped by check-in.
  * Tap to tick. Ticks are saved per routine day. "Done, not on time."
  */
-export default function NonNegotiables({ entries = [] }) {
+export default function NonNegotiables({ entries = [], onLog }) {
   const { mode } = useMode();
 
   // Re-evaluate the day and the current section every minute
@@ -188,7 +188,13 @@ export default function NonNegotiables({ entries = [] }) {
                         >
                           <Checkbox
                             checked={ticked}
-                            onChange={() => !autoDone && toggle(item.id)}
+                            onChange={() => {
+                              if (autoDone) return;
+                              // Loggable items tick from the log only: open the log form instead
+                              if (rule) { if (onLog && LOG_PREFILL[item.id]) onLog(LOG_PREFILL[item.id]); return; }
+                              toggle(item.id);
+                            }}
+                            title={rule && !autoDone ? 'Log it to tick it' : undefined}
                             size="small"
                             id={`nn-${item.id}`}
                             sx={{ p: 0.5, color: tokens.borderViolet, '&.Mui-checked': { color: 'primary.light' } }}

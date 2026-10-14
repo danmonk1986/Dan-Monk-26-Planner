@@ -36,7 +36,7 @@ const NO_VALUE_TYPES = ['water', 'vices'];
  *   editEntry   – if provided, the form pre-fills for editing
  *   onCancel    – called when editing is cancelled
  */
-export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose, initialType = 'food' }) {
+export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose, initialType = 'food', prefill = null }) {
   const [type, setType] = useState(initialType);
   // Activity can be logged as minutes or steps
   const [activityMode, setActivityMode] = useState('minutes');
@@ -101,7 +101,14 @@ export default function LogForm({ onSubmit, editEntry = null, onCancel, onClose,
 
   // Reset datetime on mount
   useEffect(() => {
-    if (!editEntry) resetForm();
+    if (!editEntry) {
+      resetForm();
+      // One-tap log from a Non-Negotiable (e.g. Activity 10 min × 3)
+      if (prefill) {
+        if (prefill.value) setValue(prefill.value);
+        if (prefill.qty) setQty(prefill.qty);
+      }
+    }
   }, []);
 
   const isSteps = type === 'gym' && activityMode === 'steps';

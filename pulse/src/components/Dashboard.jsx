@@ -272,7 +272,7 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
       </Box>
 
       {/* Daily baseline (or the log cards, via the view toggle) */}
-      {dashView === 'nn' && <NonNegotiables entries={entries} />}
+      {dashView === 'nn' && <NonNegotiables entries={entries} onLog={(p) => onQuickAdd(p.type, p)} />}
 
       {/* Today's planned workout card */}
       {todayPlanned && (
