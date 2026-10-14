@@ -213,6 +213,18 @@ export default function App() {
             How to test: tap Launch test, set up a week, then use the date arrows to skip a day and watch the planner adapt. These tools are for testing only and are not part of the student app.
           </Typography>
 
+          {/* Launch test — step one */}
+          <Box>
+            <Button
+              variant="contained"
+              startIcon={<RocketLaunchIcon />}
+              onClick={handleLaunchTest}
+              id="launch-test-button"
+            >
+              Launch test
+            </Button>
+          </Box>
+
           {/* ── Date section ── */}
           <Box>
             <Typography sx={sectionHeading}>Date</Typography>
@@ -313,20 +325,6 @@ export default function App() {
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.5, mb: 1.5 }}>
               {brand.name} stores all data in your browser. Nothing is sent to a server.
             </Typography>
-
-            {/* Launch test */}
-            <Box sx={{ mb: 1.5 }}>
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<RocketLaunchIcon />}
-                onClick={handleLaunchTest}
-                id="launch-test-button"
-                sx={{ fontSize: '0.7rem' }}
-              >
-                Launch test
-              </Button>
-            </Box>
 
             {/* Clear all data */}
             {!confirmClear ? (
