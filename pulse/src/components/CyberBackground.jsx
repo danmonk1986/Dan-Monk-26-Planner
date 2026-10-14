@@ -23,6 +23,10 @@ const STARS = Array.from({ length: 60 }, (_, i) => {
 
 const HORIZON = '66%';
 
+// Grid geometry (SVG units: 1000 wide x 340 tall below the horizon)
+const VERTICALS = Array.from({ length: 31 }, (_, i) => i - 15);
+const ROWS = Array.from({ length: 10 }, (_, k) => Math.round(340 * ((k + 1) / 10) ** 2));
+
 export default function CyberBackground() {
   return (
     <Box
@@ -60,33 +64,35 @@ export default function CyberBackground() {
         },
       }}
     >
-      {/* Neon grid floor in perspective */}
+      {/* Neon grid floor: drawn as flat lines in perspective, so nothing
+          ever rises above the horizon */}
       <Box
-        sx={{
-          position: 'absolute',
-          left: '-50%',
-          width: '200%',
-          top: HORIZON,
-          height: '70%',
-          perspective: '300px',
-        }}
+        component="svg"
+        viewBox="0 0 1000 340"
+        preserveAspectRatio="none"
+        sx={{ position: 'absolute', left: 0, top: HORIZON, width: '100%', height: `calc(100% - ${HORIZON})` }}
       >
-        <Box
-          sx={{
-            width: '100%',
-            height: '100%',
-            transformOrigin: 'top center',
-            transform: 'rotateX(68deg)',
-            backgroundImage: `
-              linear-gradient(rgba(${ACCENT},0.8) 2px, transparent 2px),
-              linear-gradient(90deg, rgba(${BRIGHT},0.75) 2px, transparent 2px)
-            `,
-            backgroundSize: '60px 60px',
-            backgroundPosition: 'center top',
-            maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, black 40%)',
-            WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, black 40%)',
-          }}
-        />
+        <defs>
+          <linearGradient id="gridFade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.25" />
+            <stop offset="0.45" stopColor="#fff" stopOpacity="1" />
+          </linearGradient>
+          <mask id="gridMask">
+            <rect width="1000" height="340" fill="url(#gridFade)" />
+          </mask>
+        </defs>
+        <g mask="url(#gridMask)">
+          {/* Lines running to the vanishing point */}
+          {VERTICALS.map((i) => (
+            <line key={`v${i}`} x1={500 + i * 22} y1="0" x2={500 + i * 160} y2="340"
+              stroke={`rgba(${BRIGHT},0.75)`} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          ))}
+          {/* Cross lines, closer together near the horizon */}
+          {ROWS.map((y) => (
+            <line key={`h${y}`} x1="0" y1={y} x2="1000" y2={y}
+              stroke={`rgba(${ACCENT},0.8)`} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          ))}
+        </g>
       </Box>
     </Box>
   );

@@ -138,18 +138,52 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onQuickGy
         </Typography>
       </Box>
 
-      {/* Quote: centered block, text left-aligned, author on the right */}
+      {/* Quote: frosted panel so it stays legible over the background */}
       {quote && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }} id="dashboard-quote">
-          <Box sx={{ maxWidth: 560, fontFamily: 'Helvetica, "Helvetica Neue", Arial, sans-serif', color: tokens.surfaceRaised }}>
-            <Typography component="p" sx={{ fontFamily: 'inherit', color: 'inherit', fontSize: { xs: '1.1rem', sm: '1.35rem' }, fontWeight: 700, lineHeight: 1.35, whiteSpace: 'pre-line', textAlign: 'center' }}>
-              “{quote.text}”
+          <Box
+            sx={{
+              position: 'relative',
+              maxWidth: 620,
+              width: '100%',
+              px: { xs: 3, sm: 5 },
+              py: { xs: 2.5, sm: 3 },
+              borderRadius: 3,
+              backgroundColor: 'rgba(10,10,20,0.72)',
+              backdropFilter: 'blur(8px)',
+              border: `1px solid ${tokens.borderViolet}`,
+              boxShadow: `0 0 32px rgba(${tokens.accentRGB},0.18)`,
+              textAlign: 'center',
+            }}
+          >
+            {/* Oversized teal quote mark */}
+            <Typography aria-hidden="true" sx={{ position: 'absolute', top: -6, left: 14, fontFamily: '"Space Grotesk", sans-serif', fontSize: '4rem', lineHeight: 1, color: 'primary.light', opacity: 0.9 }}>
+              “
+            </Typography>
+            <Typography
+              component="p"
+              sx={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontWeight: 700,
+                fontSize: { xs: '1rem', sm: '1.25rem' },
+                lineHeight: 1.45,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                whiteSpace: 'pre-line',
+                color: '#F5F5FA',
+                textShadow: `0 0 18px rgba(${tokens.accentBrightRGB},0.25)`,
+              }}
+            >
+              {quote.text}
             </Typography>
             {quote.author && (
-              <Typography sx={{ fontFamily: 'inherit', color: 'inherit', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'right', mt: 1 }}>
-                -{quote.author}
+              <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'primary.main', mt: 1.5 }}>
+                — {quote.author}
               </Typography>
             )}
+          </Box>
+        </Box>
+      )}
           </Box>
         </Box>
       )}
