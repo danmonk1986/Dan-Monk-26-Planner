@@ -10,18 +10,23 @@ import { viceWeight } from './logTypes';
  * A finished day with nothing logged at all is also a dip.
  */
 export const BASELINE_PCT = 0.8;
-const TOLERANCE_KEY = 'monk.viceTolerance';
+const TOLERANCE_KEY = 'monk.viceLimits'; // { hq, mwd }
+export const DEFAULT_LIMITS = { hq: 3, mwd: 2 };
 const DAY_MODES_KEY = 'monk.dayModes';
 
+// Daily vice limit per mode: HQ 3, MWD 2 by default (editable)
 export function loadTolerance() {
   try {
-    const v = parseFloat(localStorage.getItem(TOLERANCE_KEY));
-    return Number.isFinite(v) && v >= 0 ? v : 1;
-  } catch { return 1; }
+    const v = JSON.parse(localStorage.getItem(TOLERANCE_KEY) || 'null');
+    if (v && Number.isFinite(v.hq) && Number.isFinite(v.mwd)) return v;
+  } catch { /* ignore */ }
+  return { ...DEFAULT_LIMITS };
 }
 export function saveTolerance(v) {
-  try { localStorage.setItem(TOLERANCE_KEY, String(v)); } catch { /* ignore */ }
+  try { localStorage.setItem(TOLERANCE_KEY, JSON.stringify(v)); } catch { /* ignore */ }
 }
+// The limit for a mode tag ('hq', 'mwd-days', 'mwd-nights')
+export const limitFor = (limits, tag) => (String(tag || 'hq').startsWith('mwd') ? limits.mwd : limits.hq);
 
 // Remember which mode each day was lived in (used by the Summary)
 export function recordDayMode(day, mode) {
@@ -69,13 +74,14 @@ export function firstDay(ticks, entries, mode) {
  *  'today'    still in progress (onTrack tells if it's at baseline so far)
  *  'baseline' / 'dip'
  */
-export function dayStatus(day, { items, ticks, totals, vices, tolerance, today, start, hasEntry }) {
+export function dayStatus(day, { items, ticks, totals, vices, tolerance: tolOf, today, start, hasEntry }) {
+  const tolerance = typeof tolOf === 'function' ? tolOf(day) : tolOf;
   const list = itemsForDay(items, day);
   const done = list.filter((i) => isItemDone(i.id, day, ticks, totals)).length;
   const total = list.length;
   const v = vices[day] || 0;
   const meets = total > 0 && done / total >= BASELINE_PCT && v <= tolerance;
-  const base = { day, done, total, vices: v, meets };
+  const base = { day, done, total, vices: v, limit: tolerance, meets };
   if (!start || day < start) return { ...base, status: 'none' };
   if (day === today) return { ...base, status: 'today' };
   const anyEvidence = done > 0 || v > 0 || hasEntry(day);

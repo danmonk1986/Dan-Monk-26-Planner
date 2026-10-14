@@ -21,7 +21,7 @@ import {
   AUTO_RULES, totalsByDay, isItemDone, LOG_PREFILL,
 } from '../data/nonNegotiables';
 import {
-  BASELINE_PCT, loadTolerance, saveTolerance, recordDayMode, vicesByDay, firstDay, dayStatus, curve, addDays,
+  BASELINE_PCT, loadTolerance, saveTolerance, limitFor, loadDayModes, recordDayMode, vicesByDay, firstDay, dayStatus, curve, addDays,
 } from '../data/baseline';
 
 const heading = { fontFamily: '"Space Grotesk", sans-serif', textTransform: 'uppercase', letterSpacing: '0.1em' };
@@ -61,7 +61,11 @@ export default function NonNegotiables({ entries = [], onLog }) {
   const vices = useMemo(() => vicesByDay(entries, mode), [entries, mode]);
   const entryDays = useMemo(() => new Set(entries.map((e) => routineDayKey(mode, new Date(e.timestamp)))), [entries, mode]);
   const start = useMemo(() => firstDay(ticks, entries, mode), [ticks, entries, mode]);
-  const ctx = { items, ticks, totals, vices, tolerance, today: day, start, hasEntry: (d) => entryDays.has(d) };
+  // Each day is judged by the limit for the mode it was lived in (today: current mode)
+  const dayModes = useMemo(() => loadDayModes(), [day, mode]);
+  const modeTag = mode.place === 'mwd' ? `mwd-${mode.shift}` : 'hq';
+  const limitOf = (d) => limitFor(tolerance, d === day ? modeTag : dayModes[d]);
+  const ctx = { items, ticks, totals, vices, tolerance: limitOf, today: day, start, hasEntry: (d) => entryDays.has(d) };
   const statusOf = (d) => dayStatus(d, ctx);
   const week = Array.from({ length: 7 }, (_, k) => statusOf(addDays(day, k - 6)));
   const today = week[6];
@@ -274,7 +278,7 @@ export default function NonNegotiables({ entries = [], onLog }) {
             <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }} id="baseline-detail">
               {[
                 `${today.done}/${need} needed`,
-                `vice load ${today.vices}/${tolerance}`,
+                `vice load ${today.vices}/${today.limit}`,
                 arc.run > 0 ? `${arc.run}-day run` : null,
                 arc.dipDays > 0 ? `dip ${arc.dipDays} day${arc.dipDays > 1 ? 's' : ''}` : null,
                 arc.lastBounce ? `last bounce-back ${arc.lastBounce} day${arc.lastBounce > 1 ? 's' : ''}` : null,
@@ -283,16 +287,26 @@ export default function NonNegotiables({ entries = [], onLog }) {
           </Box>
 
           {editing && (
-            <TextField
-              label="Vice limit / day"
-              type="number"
-              size="small"
-              value={tolerance}
-              onChange={(e) => { const v = Math.max(0, Math.round((parseFloat(e.target.value) || 0) * 2) / 2); setTolerance(v); saveTolerance(v); }}
-              inputProps={{ min: 0, step: 0.5 }}
-              sx={{ width: 170 }}
-              id="vice-tolerance"
-            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {['hq', 'mwd'].map((k) => (
+                <TextField
+                  key={k}
+                  label={`Vice limit · ${k.toUpperCase()}`}
+                  type="number"
+                  size="small"
+                  value={tolerance[k]}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.round((parseFloat(e.target.value) || 0) * 2) / 2);
+                    const next = { ...tolerance, [k]: v };
+                    setTolerance(next);
+                    saveTolerance(next);
+                  }}
+                  inputProps={{ min: 0, step: 0.5 }}
+                  sx={{ width: 130 }}
+                  id={`vice-limit-${k}`}
+                />
+              ))}
+            </Box>
           )}
         </Box>
       </CardContent>
