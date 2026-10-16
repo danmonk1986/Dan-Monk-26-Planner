@@ -8,7 +8,6 @@ import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InsightsIcon from '@mui/icons-material/Insights';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import logo from '../assets/dan-monk-logo.png';
 import tagline from '../assets/tagline.png';
 import { tokens } from '../theme';
@@ -27,7 +26,7 @@ export default function Nav({ view, onChangeView }) {
   const { mode } = useMode();
   // Log (1) and History (2) are reached from Dashboard / Summary, not the menu,
   // so nothing is highlighted while they're open.
-  const tabValue = [0, 3, 4].includes(view) ? view : false;
+  const tabValue = [0, 3].includes(view) ? view : false;
 
   const handleChange = (_, v) => onChangeView(v);
 
@@ -99,7 +98,6 @@ export default function Nav({ view, onChangeView }) {
           >
             <Tab icon={<DashboardIcon />} iconPosition="start" label="Dashboard" value={0} id="nav-dashboard" />
             <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={3} id="nav-summary" />
-            <Tab icon={<CalendarMonthIcon />} iconPosition="start" label="DM26 Planner" value={4} id="nav-planner" />
           </Tabs>
         )}
       </Box>
@@ -120,7 +118,6 @@ export default function Nav({ view, onChangeView }) {
         >
           <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} value={0} id="nav-mobile-dashboard" />
           <BottomNavigationAction label="Summary" icon={<InsightsIcon />} value={3} id="nav-mobile-summary" />
-          <BottomNavigationAction label="DM26" icon={<CalendarMonthIcon />} value={4} id="nav-mobile-planner" />
         </BottomNavigation>
       )}
     </>

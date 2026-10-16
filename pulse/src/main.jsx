@@ -17,6 +17,9 @@ import { ModeProvider } from './hooks/useMode';
 // Tab title follows the active brand (Pulse by default).
 document.title = brand.title || brand.name;
 
+// The routines feature was removed; clear anything it saved in this browser.
+try { localStorage.removeItem('monk.routines'); } catch { /* ignore */ }
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>

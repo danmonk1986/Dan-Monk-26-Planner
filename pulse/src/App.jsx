@@ -9,12 +9,11 @@ import Dashboard from './components/Dashboard';
 import LogForm from './components/LogForm';
 import History from './components/History';
 import WeeklySummary from './components/WeeklySummary';
-import Routines from './components/Routines';
 import useEntries from './hooks/useEntries';
 import brand from './brand';
 
 /**
- * Views: 0 Dashboard · 1 Log form · 2 History · 3 Summary · 4 DM26 Planner.
+ * Views: 0 Dashboard · 1 Log form · 2 History · 3 Summary.
  * Log and History aren't menu tabs: Log opens from the Dashboard,
  * History from the Summary.
  */
@@ -93,7 +92,6 @@ export default function App() {
           </>
         )}
         {view === 3 && <WeeklySummary entries={entries} onOpenHistory={() => setView(2)} />}
-        {view === 4 && <Routines />}
       </Box>
 
       <Box component="footer" sx={{ py: 2, px: 2, textAlign: 'center', color: 'text.secondary', borderTop: 1, borderColor: 'divider', fontSize: { xs: '0.75rem', md: '0.7rem' }, whiteSpace: { lg: 'nowrap' } }}>
